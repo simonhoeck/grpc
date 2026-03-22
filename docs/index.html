@@ -10,8 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
 
-  <!-- highlight.js -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <!-- highlight.js — dark base theme -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
@@ -365,6 +365,7 @@
     /* ─── Code blocks ──────────────────────────────────────────── */
     pre {
       background: #0f172a;
+      color: #e2e8f0;
       border-radius: var(--radius);
       overflow: auto;
       margin: 16px 0;
@@ -373,12 +374,43 @@
     }
 
     pre code.hljs {
-      background: transparent;
+      background: #0f172a;
+      color: #e2e8f0;
       padding: 20px 22px;
       font-family: 'JetBrains Mono', 'Fira Code', monospace;
       font-size: 13px;
       line-height: 1.65;
     }
+
+    /* ─── highlight.js token overrides (dark theme) ─────────────── */
+    .hljs                  { background: #0f172a; color: #e2e8f0; }
+    .hljs-comment,
+    .hljs-quote            { color: #94a3b8; font-style: italic; }
+    .hljs-string,
+    .hljs-template-string,
+    .hljs-template-tag     { color: #86efac; }
+    .hljs-keyword,
+    .hljs-selector-tag,
+    .hljs-built_in,
+    .hljs-name,
+    .hljs-tag              { color: #93c5fd; }
+    .hljs-number,
+    .hljs-literal,
+    .hljs-type             { color: #fda4af; }
+    .hljs-attr,
+    .hljs-attribute        { color: #fde68a; }
+    .hljs-variable,
+    .hljs-params           { color: #e2e8f0; }
+    .hljs-function,
+    .hljs-title            { color: #c4b5fd; }
+    .hljs-meta             { color: #7dd3fc; }
+    .hljs-symbol,
+    .hljs-bullet,
+    .hljs-link             { color: #f9a8d4; }
+    .hljs-deletion         { color: #fca5a5; }
+    .hljs-addition         { color: #86efac; }
+    .hljs-emphasis         { font-style: italic; }
+    .hljs-strong           { font-weight: bold; }
 
     /* ASCII diagram — monospace, dark bg, no hljs coloring */
     pre.ascii-diagram {
