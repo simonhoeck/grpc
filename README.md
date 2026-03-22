@@ -93,15 +93,16 @@ The variables map to the following container settings:
 docker compose up -d
 ```
 
-This starts three containers in detached mode:
+This starts four containers in detached mode:
 
 | Container | Image | Purpose |
 |---|---|---|
 | `grpc_redis` | `redis:7-alpine` | Stream buffer (AOF persistence enabled) |
 | `grpc_mongodb` | `mongo:7` | Time Series + GridFS storage |
+| `grpc_mongo_express` | `mongo-express:latest` | Browser UI for MongoDB (port 8081) |
 | `grpc_grafana` | `grafana/grafana:latest` | Dashboards (MongoDB datasource plugin pre-installed) |
 
-Grafana waits for MongoDB's health check to pass before it starts.
+Mongo Express and Grafana both wait for MongoDB's health check to pass before they start.
 
 ### Verify all services are healthy
 
@@ -117,6 +118,7 @@ All three containers should show `healthy` (Redis and MongoDB have health checks
 |---|---|---|---|
 | Redis | `grpc_redis` | 6379 | `redis://localhost:6379` |
 | MongoDB | `grpc_mongodb` | 27017 | `mongodb://localhost:27017` |
+| Mongo Express | `grpc_mongo_express` | 8081 | `http://localhost:8081` |
 | Grafana | `grpc_grafana` | 3000 | `http://localhost:3000` |
 
 If any container looks wrong, check its recent output:
@@ -175,6 +177,24 @@ curl -s http://localhost:3000/api/health
 Navigate to `http://localhost:3000` in your browser. Log in with the credentials you set in `.env` (default: `admin` / `admin`). On first login Grafana may prompt you to change the password.
 
 The MongoDB datasource plugin (`grafana-mongodb-datasource`) is installed automatically at container startup. Add it under **Connections > Data sources** and point it at `mongodb://grpc_mongodb:27017` using the same `MONGO_USER` / `MONGO_PASSWORD` values.
+
+### Viewing data in the browser (Mongo Express)
+
+Mongo Express is included in `docker-compose.yml` and starts automatically alongside the other services:
+
+```bash
+docker compose up -d
+```
+
+Open `http://localhost:8081` in your browser — no login is required (basic auth is disabled in the compose configuration).
+
+**Navigating to your data:**
+
+1. In the left-hand database list, click **grpcdata**.
+2. Click **measurements** to browse sensor and event documents stored in the Time Series collection.
+3. The **fs.files** and **fs.chunks** collections contain the GridFS binary payloads. Use `fs.files` to find a file by metadata (device ID, timestamp) and `fs.chunks` for the raw binary chunks.
+
+No installation is needed beyond Docker — Mongo Express runs entirely as a container and connects to `grpc_mongodb` over the internal Docker network.
 
 ### Stop services
 

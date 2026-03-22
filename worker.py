@@ -2,6 +2,7 @@ import os
 import json
 import time
 import logging
+from datetime import datetime, timezone
 
 import redis
 from pymongo import MongoClient
@@ -53,12 +54,14 @@ def write_packet(db, fs, packet: dict):
     timestamp = int(packet[b"timestamp"])
     payload   = packet[b"payload"]
 
+    dt = datetime.fromtimestamp(timestamp / 1000, tz=timezone.utc)
+
     if ptype == "binary":
-        fs.put(payload, device_id=device_id, timestamp=timestamp, type=ptype)
+        fs.put(payload, device_id=device_id, timestamp=dt, type=ptype)
     else:
         data = json.loads(payload.decode())
         db.measurements.insert_one({
-            "timestamp": timestamp,
+            "timestamp": dt,
             "device_id": device_id,
             "type":      ptype,
             "data":      data,
