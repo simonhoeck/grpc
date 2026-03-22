@@ -19,6 +19,7 @@ A high-throughput data acquisition pipeline for IoT and industrial devices. Devi
 - [Testing](#testing)
 - [Scaling](#scaling)
 - [Monitoring](#monitoring)
+- [Connecting a Real Machine (Anlage)](#connecting-a-real-machine-anlage)
 
 ---
 
@@ -568,6 +569,74 @@ mongosh --eval 'db.measurements.countDocuments({type: "sensor"})'
 # Binary file count (GridFS)
 mongosh --eval 'db.fs.files.countDocuments({})'
 ```
+
+---
+
+## Connecting a Real Machine (Anlage)
+
+This section describes how to run `producer.py` directly on an industrial machine or embedded PC so it streams live measurements to the server.
+
+### Files needed on the machine
+
+Copy only these three files to the machine — nothing else is required:
+
+- `data_pb2.py`
+- `data_pb2_grpc.py`
+- `producer.py`
+
+The generated stub files (`data_pb2.py`, `data_pb2_grpc.py`) are already committed to the repository. There is no need to install `grpcio-tools` or run `protoc` on the machine.
+
+### Install on the machine
+
+```bash
+pip install grpcio
+```
+
+Only `grpcio` (the runtime) is needed. `grpcio-tools` is a development-only dependency for regenerating stubs and is not required on the machine.
+
+### Configuration via environment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `GRPC_SERVER` | `localhost:50051` | IP address and port of the server PC (e.g. `192.168.1.10:50051`) |
+| `DEVICE_ID` | `anlage-001` | Unique name that identifies this machine in the database |
+| `INTERVAL` | `1.0` | Measurement interval in seconds |
+
+Set variables before starting the producer, for example:
+
+```bash
+GRPC_SERVER=192.168.1.10:50051 DEVICE_ID=presse-01 INTERVAL=0.5 python producer.py
+```
+
+On Windows, set them as system environment variables or use a `.env` loader.
+
+### What to customize
+
+Open `producer.py` and fill in the two marked functions:
+
+**`read_sensors()`** — replace the placeholder values with real hardware reads. Supported protocols include Modbus, OPC-UA, Serial/RS-232, GPIO, and any Python-accessible interface. The function must return a `dict` of measurement values; the keys become the field names stored in MongoDB.
+
+**`read_events()`** — optional. Return a list of event dicts (alarms, status changes, error codes) whenever something noteworthy occurs, or `None` if there is nothing to report. Each dict is stored as a separate `event` packet in the `measurements` collection.
+
+### How to run
+
+```bash
+python producer.py
+```
+
+The producer connects to the gRPC server and streams packets continuously. Log output is written to stdout.
+
+### Windows Firewall
+
+The server PC needs port 50051 open for inbound TCP connections. Run the following command once on the server PC with administrator privileges:
+
+```
+netsh advfirewall firewall add rule name="gRPC" dir=in action=allow protocol=TCP localport=50051
+```
+
+### Auto-reconnect
+
+If the connection to the server is lost (network interruption, server restart), `producer.py` automatically waits 5 seconds and then reconnects. No manual intervention is required.
 
 ---
 
