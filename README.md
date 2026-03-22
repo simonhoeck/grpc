@@ -7,6 +7,7 @@ A high-throughput data acquisition pipeline for IoT and industrial devices. Devi
 ## Table of Contents
 
 - [Architecture](#architecture)
+- [Infrastructure / Docker](#infrastructure--docker)
 - [Data Flow](#data-flow)
 - [Proto Schema](#proto-schema)
 - [MongoDB Collections](#mongodb-collections)
@@ -52,6 +53,142 @@ Worker / Consumer
 | Failed-packet stream | Messages that cannot be written go to `data_stream_failed` instead of being discarded — nothing is silently lost |
 | Time Series collection | MongoDB native time series gives automatic bucketing and efficient range queries on `(timestamp, device_id, type)` |
 | GridFS for binary | Binary payloads (firmware images, waveforms, etc.) are too large for a document field; GridFS handles chunking transparently |
+
+---
+
+## Infrastructure / Docker
+
+The three backing services — Redis, MongoDB, and Grafana — are managed by `docker-compose.yml` in the project root. Everything below assumes Docker Desktop is installed and running.
+
+### Prerequisites
+
+- **Docker Desktop** (Windows / macOS) or Docker Engine + Compose plugin (Linux), running before any `docker compose` command.
+
+### Configure credentials
+
+Create a `.env` file in the project root. Docker Compose reads it automatically and substitutes the values into the service definitions.
+
+```dotenv
+# .env  — do not commit this file
+MONGO_USER=admin
+MONGO_PASSWORD=changeme
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admin
+```
+
+> **Note:** The values above are the built-in defaults from `docker-compose.yml`. Change them before running in any environment that is reachable from a network.
+
+The variables map to the following container settings:
+
+| Variable | Container env var | Service |
+|---|---|---|
+| `MONGO_USER` | `MONGO_INITDB_ROOT_USERNAME` | MongoDB |
+| `MONGO_PASSWORD` | `MONGO_INITDB_ROOT_PASSWORD` | MongoDB |
+| `GRAFANA_USER` | `GF_SECURITY_ADMIN_USER` | Grafana |
+| `GRAFANA_PASSWORD` | `GF_SECURITY_ADMIN_PASSWORD` | Grafana |
+
+### Start all services
+
+```bash
+docker compose up -d
+```
+
+This starts three containers in detached mode:
+
+| Container | Image | Purpose |
+|---|---|---|
+| `grpc_redis` | `redis:7-alpine` | Stream buffer (AOF persistence enabled) |
+| `grpc_mongodb` | `mongo:7` | Time Series + GridFS storage |
+| `grpc_grafana` | `grafana/grafana:latest` | Dashboards (MongoDB datasource plugin pre-installed) |
+
+Grafana waits for MongoDB's health check to pass before it starts.
+
+### Verify all services are healthy
+
+Start by checking the overall status of all containers:
+
+```bash
+docker compose ps
+```
+
+All three containers should show `healthy` (Redis and MongoDB have health checks configured) or at minimum `Up`. Expected port bindings:
+
+| Service | Container | Host port | Default URL |
+|---|---|---|---|
+| Redis | `grpc_redis` | 6379 | `redis://localhost:6379` |
+| MongoDB | `grpc_mongodb` | 27017 | `mongodb://localhost:27017` |
+| Grafana | `grpc_grafana` | 3000 | `http://localhost:3000` |
+
+If any container looks wrong, check its recent output:
+
+```bash
+docker compose logs --tail=20
+```
+
+To verify each service individually, use the commands below.
+
+#### Redis
+
+```bash
+# Should return: PONG
+docker exec grpc_redis redis-cli ping
+```
+
+```bash
+# Should print the Redis server version
+docker exec grpc_redis redis-cli info server | grep redis_version
+```
+
+#### MongoDB
+
+```bash
+# Should return: { ok: 1 }
+docker exec grpc_mongodb mongosh \
+  -u admin -p changeme \
+  --authenticationDatabase admin \
+  --eval "db.adminCommand('ping')"
+```
+
+```bash
+# Lists all databases — confirms authentication works
+docker exec grpc_mongodb mongosh \
+  -u admin -p changeme \
+  --authenticationDatabase admin \
+  --eval "show dbs"
+```
+
+> **Note:** Replace `admin` / `changeme` with the values from your `.env` file if you changed the defaults.
+
+#### Grafana
+
+Open `http://localhost:3000` in your browser and log in with `admin` / `admin` (or the credentials from your `.env`). On first login Grafana may prompt you to change the password.
+
+Alternatively, check the health endpoint from the command line — no login required:
+
+```bash
+# Should return: {"database":"ok", ...}
+curl -s http://localhost:3000/api/health
+```
+
+### Open Grafana
+
+Navigate to `http://localhost:3000` in your browser. Log in with the credentials you set in `.env` (default: `admin` / `admin`). On first login Grafana may prompt you to change the password.
+
+The MongoDB datasource plugin (`grafana-mongodb-datasource`) is installed automatically at container startup. Add it under **Connections > Data sources** and point it at `mongodb://grpc_mongodb:27017` using the same `MONGO_USER` / `MONGO_PASSWORD` values.
+
+### Stop services
+
+```bash
+# Stop and remove containers, keep all volume data intact
+docker compose down
+```
+
+```bash
+# Stop and remove containers AND delete all stored data (Redis, MongoDB, Grafana)
+docker compose down -v
+```
+
+> **Warning:** `docker compose down -v` permanently deletes the `redis_data`, `mongo_data`, and `grafana_data` volumes. All measurements, binary files, and Grafana dashboard configurations will be lost.
 
 ---
 
@@ -270,14 +407,32 @@ ack = stub.SendData(iter([
 
 The `tests/` directory contains four test scripts covering different scenarios:
 
-| Script | Scenario |
-|---|---|
-| `tests/test_single.py` | 100 packets, single client — baseline correctness check |
-| `tests/test_multi.py` | 20 concurrent clients — concurrency and ordering |
-| `tests/test_mixed.py` | Mixed types: sensor, event, binary — data routing coverage |
-| `tests/test_load.py` | 50 clients × 1000 packets — stress / throughput test |
+| Script | What it sends | Passing result |
+|---|---|---|
+| `tests/test_single.py` | 100 sensor packets from one client | `[test_single] success=True  (100 packets sent)` |
+| `tests/test_multi.py` | 100 sensor packets each from 20 concurrent clients (2 000 total) | `[test_multi] 20/20 clients OK — 2000 packets sent, 0 failed` |
+| `tests/test_mixed.py` | 10 sensor + 5 event + 3 binary packets in a single stream | `[test_mixed] success=True  (10 sensor + 5 event + 3 binary)` |
+| `tests/test_load.py` | 1 000 sensor packets each from 50 concurrent clients (50 000 total) | `[test_load] 50/50 clients OK` plus throughput summary |
 
-Run any test directly:
+### Prerequisites
+
+Both `server.py` and `worker.py` must be running before you execute any test. Start them in separate terminals:
+
+```bash
+# Terminal 1
+python server.py
+
+# Terminal 2
+python worker.py
+```
+
+Docker infrastructure (Redis + MongoDB) must also be up:
+
+```bash
+docker compose up -d
+```
+
+### Run the tests
 
 ```bash
 python tests/test_single.py
@@ -285,6 +440,54 @@ python tests/test_multi.py
 python tests/test_mixed.py
 python tests/test_load.py
 ```
+
+You can override the server address with the `GRPC_SERVER` environment variable (default: `localhost:50051`):
+
+```bash
+GRPC_SERVER=192.168.1.10:50051 python tests/test_single.py
+```
+
+### Expected output
+
+**test_single.py**
+
+```
+[test_single] success=True  (100 packets sent)
+```
+
+**test_multi.py**
+
+```
+[test_multi] 20/20 clients OK — 2000 packets sent, 0 failed
+```
+
+If any individual client call returns `success=False`, that client's result is printed before the summary:
+
+```
+[test_multi] client 7 FAILED
+[test_multi] 19/20 clients OK — 2000 packets sent, 1 failed
+```
+
+**test_mixed.py**
+
+```
+[test_mixed] success=True  (10 sensor + 5 event + 3 binary)
+```
+
+**test_load.py**
+
+`test_load.py` prints a progress line at the start and a throughput summary at the end:
+
+```
+[test_load] Starting 50 clients × 1000 packets = 50000 total ...
+[test_load] 50/50 clients OK
+[test_load] Total packets : 50000
+[test_load] Total time    : 8.3s
+[test_load] Throughput    : 6024 packets/s
+[test_load] Avg per client: 7.41s
+```
+
+Exact timing figures vary by hardware; the important indicators are `50/50 clients OK` and `0 failed`.
 
 ---
 

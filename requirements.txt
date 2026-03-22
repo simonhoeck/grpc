@@ -1,0 +1,4 @@
+grpcio==1.68.1
+grpcio-tools==1.68.1
+redis==5.2.1
+pymongo==4.10.1
