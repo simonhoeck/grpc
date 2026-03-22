@@ -675,6 +675,53 @@ docker compose pull && docker compose up -d
 
 `docker compose pull` fetches the latest image versions from the registry. `docker compose up -d` then starts all services in detached mode.
 
+### Using the published images
+
+`docker-compose.yml` in this repository already references the published ghcr.io images, so no local build is required. The relevant service definitions look like this:
+
+```yaml
+  server:
+    image: ghcr.io/simonhoeck/grpc-server:latest
+    command: python server.py
+    container_name: grpc_server
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      REDIS_HOST: redis
+      GRPC_PORT: "50051"
+      MAX_WORKERS: "50"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    image: ghcr.io/simonhoeck/grpc-worker:latest
+    command: python worker.py
+    container_name: grpc_worker
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      MONGO_HOST: mongodb
+      MONGO_USER: ${MONGO_USER:-admin}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      CONSUMER_NAME: worker-1
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+```
+
+On any machine that has Docker installed, copy over `docker-compose.yml` and a `.env` file (see [Configure credentials](#configure-credentials)), then run:
+
+```bash
+docker compose pull
+docker compose up -d
+```
+
+`docker compose pull` downloads the server and worker images from ghcr.io. `docker compose up -d` starts the full stack in detached mode. No source code or Python environment is needed.
+
 ---
 
 ## Connecting a Real Machine (Anlage)

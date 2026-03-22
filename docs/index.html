@@ -1,0 +1,1778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>gRPC Data Stack — Documentation</title>
+
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <!-- highlight.js -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+  <style>
+    /* ─── Reset & base ─────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --sidebar-width: 260px;
+      --sidebar-bg:    #1e293b;
+      --sidebar-text:  #94a3b8;
+      --sidebar-hover: #f1f5f9;
+      --sidebar-active:#3b82f6;
+      --accent:        #3b82f6;
+      --accent-dark:   #2563eb;
+      --accent-light:  #eff6ff;
+      --bg:            #f8fafc;
+      --surface:       #ffffff;
+      --border:        #e2e8f0;
+      --text:          #0f172a;
+      --text-muted:    #64748b;
+      --code-bg:       #f1f5f9;
+      --warn-bg:       #fff7ed;
+      --warn-border:   #fed7aa;
+      --warn-text:     #9a3412;
+      --note-bg:       #eff6ff;
+      --note-border:   #bfdbfe;
+      --note-text:     #1e40af;
+      --radius:        8px;
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.05);
+      --shadow:        0 4px 6px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.05);
+      --transition:    150ms cubic-bezier(.4,0,.2,1);
+    }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ─── Sidebar ──────────────────────────────────────────────── */
+    .sidebar {
+      position: fixed;
+      top: 0; left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      z-index: 100;
+      transition: transform var(--transition);
+    }
+
+    .sidebar-header {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+
+    .sidebar-logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-logo-text {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1f5f9;
+      line-height: 1.3;
+      letter-spacing: -.01em;
+    }
+
+    .sidebar-tagline {
+      font-size: 11px;
+      color: var(--sidebar-text);
+      letter-spacing: .03em;
+      text-transform: uppercase;
+      font-weight: 500;
+      padding-left: 46px;
+    }
+
+    .sidebar-nav {
+      padding: 16px 0 24px;
+      flex: 1;
+    }
+
+    .nav-group-label {
+      font-size: 10px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      padding: 12px 20px 6px;
+    }
+
+    .nav-link {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 20px;
+      font-size: 13.5px;
+      color: var(--sidebar-text);
+      text-decoration: none;
+      border-left: 3px solid transparent;
+      transition: color var(--transition), background var(--transition), border-color var(--transition);
+    }
+
+    .nav-link:hover {
+      color: var(--sidebar-hover);
+      background: rgba(255,255,255,.05);
+    }
+
+    .nav-link.active {
+      color: #fff;
+      background: rgba(59,130,246,.15);
+      border-left-color: var(--accent);
+    }
+
+    .nav-link-icon { font-size: 14px; flex-shrink: 0; }
+
+    .sidebar-footer {
+      padding: 16px 20px;
+      border-top: 1px solid rgba(255,255,255,.07);
+      font-size: 11.5px;
+      color: #475569;
+    }
+
+    .sidebar-footer a {
+      color: var(--sidebar-text);
+      text-decoration: none;
+    }
+
+    .sidebar-footer a:hover { color: #f1f5f9; }
+
+    /* ─── Mobile toggle ────────────────────────────────────────── */
+    .mobile-toggle {
+      display: none;
+      position: fixed;
+      top: 14px; left: 14px;
+      z-index: 200;
+      background: var(--sidebar-bg);
+      border: none;
+      color: #f1f5f9;
+      width: 40px; height: 40px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 18px;
+      align-items: center;
+      justify-content: center;
+      box-shadow: var(--shadow);
+    }
+
+    .overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.4);
+      z-index: 90;
+    }
+
+    /* ─── Main content ─────────────────────────────────────────── */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1;
+      min-width: 0;
+    }
+
+    .content {
+      max-width: 860px;
+      padding: 60px 48px 80px;
+      margin: 0 auto;
+    }
+
+    /* ─── Hero section ─────────────────────────────────────────── */
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 16px;
+      padding: 52px 48px;
+      margin-bottom: 56px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -60px; right: -60px;
+      width: 300px; height: 300px;
+      background: radial-gradient(circle, rgba(59,130,246,.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(59,130,246,.2);
+      color: #93c5fd;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(59,130,246,.3);
+      margin-bottom: 20px;
+      letter-spacing: .03em;
+    }
+
+    .hero h1 {
+      font-size: 32px;
+      font-weight: 700;
+      color: #f8fafc;
+      line-height: 1.25;
+      letter-spacing: -.02em;
+      margin-bottom: 14px;
+    }
+
+    .hero h1 .arrow {
+      color: var(--accent);
+    }
+
+    .hero-desc {
+      font-size: 16px;
+      color: #94a3b8;
+      line-height: 1.6;
+      max-width: 580px;
+      margin-bottom: 32px;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all var(--transition);
+      cursor: pointer;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-dark);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(59,130,246,.4);
+    }
+
+    .btn-outline {
+      background: rgba(255,255,255,.07);
+      color: #e2e8f0;
+      border: 1px solid rgba(255,255,255,.15);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255,255,255,.12);
+      border-color: rgba(255,255,255,.25);
+      transform: translateY(-1px);
+    }
+
+    /* ─── Section headings ─────────────────────────────────────── */
+    section {
+      margin-bottom: 56px;
+      scroll-margin-top: 32px;
+    }
+
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      margin-bottom: 8px;
+    }
+
+    h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -.02em;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--border);
+    }
+
+    h3 {
+      font-size: 17px;
+      font-weight: 600;
+      color: var(--text);
+      margin-top: 28px;
+      margin-bottom: 12px;
+    }
+
+    h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-top: 20px;
+      margin-bottom: 10px;
+    }
+
+    p {
+      margin-bottom: 14px;
+      color: #334155;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    ul, ol {
+      padding-left: 22px;
+      margin-bottom: 14px;
+    }
+
+    li { margin-bottom: 5px; color: #334155; }
+
+    strong { font-weight: 600; color: var(--text); }
+
+    /* ─── Code blocks ──────────────────────────────────────────── */
+    pre {
+      background: #0f172a;
+      border-radius: var(--radius);
+      overflow: auto;
+      margin: 16px 0;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+
+    pre code.hljs {
+      background: transparent;
+      padding: 20px 22px;
+      font-family: 'JetBrains Mono', 'Fira Code', monospace;
+      font-size: 13px;
+      line-height: 1.65;
+    }
+
+    /* ASCII diagram — monospace, dark bg, no hljs coloring */
+    pre.ascii-diagram {
+      background: #0f172a;
+      border: 1px solid rgba(255,255,255,.07);
+    }
+
+    pre.ascii-diagram code {
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      padding: 20px 22px;
+      display: block;
+      overflow-x: auto;
+      white-space: pre;
+    }
+
+    code:not(pre code) {
+      background: var(--code-bg);
+      color: #be185d;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    /* Language label on code blocks */
+    .code-block-wrapper {
+      position: relative;
+      margin: 16px 0;
+    }
+
+    .code-lang {
+      position: absolute;
+      top: 10px; right: 14px;
+      font-size: 10px;
+      font-weight: 600;
+      color: #475569;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      z-index: 1;
+    }
+
+    /* ─── Tables ───────────────────────────────────────────────── */
+    .table-wrapper {
+      overflow-x: auto;
+      margin: 16px 0;
+      border-radius: var(--radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    thead {
+      background: #f1f5f9;
+    }
+
+    th {
+      padding: 11px 16px;
+      text-align: left;
+      font-weight: 600;
+      color: #475569;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 10px 16px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tbody tr:nth-child(even) { background: #f8fafc; }
+    tbody tr:hover { background: var(--accent-light); }
+
+    td code { font-size: 12px; }
+
+    /* ─── Callout boxes ────────────────────────────────────────── */
+    .callout {
+      display: flex;
+      gap: 12px;
+      padding: 14px 16px;
+      border-radius: var(--radius);
+      margin: 16px 0;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    .callout-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+    .callout.note {
+      background: var(--note-bg);
+      border: 1px solid var(--note-border);
+      color: var(--note-text);
+    }
+
+    .callout.warning {
+      background: var(--warn-bg);
+      border: 1px solid var(--warn-border);
+      color: var(--warn-text);
+    }
+
+    /* ─── Architecture cards ───────────────────────────────────── */
+    .cards-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+      transition: box-shadow var(--transition), transform var(--transition);
+    }
+
+    .card:hover {
+      box-shadow: var(--shadow);
+      transform: translateY(-2px);
+    }
+
+    .card-icon {
+      font-size: 22px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .card-body {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ─── Quick start command highlight ───────────────────────── */
+    .quick-start-command {
+      background: #0f172a;
+      border: 1px solid rgba(59,130,246,.3);
+      border-radius: var(--radius);
+      padding: 18px 22px;
+      margin: 20px 0;
+      position: relative;
+    }
+
+    .quick-start-command code {
+      background: transparent;
+      color: #7dd3fc;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 500;
+      display: block;
+    }
+
+    .quick-start-command::before {
+      content: '$';
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      position: absolute;
+      left: 22px;
+      top: 18px;
+    }
+
+    .quick-start-command code { padding-left: 18px; }
+
+    /* ─── Service pills ────────────────────────────────────────── */
+    .service-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .service-item {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 12px 16px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .service-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+
+    .service-info { flex: 1; }
+
+    .service-name {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .service-desc {
+      font-size: 12.5px;
+      color: var(--text-muted);
+    }
+
+    .service-port {
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      background: var(--accent-light);
+      padding: 3px 9px;
+      border-radius: 5px;
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    /* ─── Data flow steps ──────────────────────────────────────── */
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 20px 0;
+    }
+
+    .flow-step {
+      display: flex;
+      gap: 16px;
+      position: relative;
+    }
+
+    .flow-step-left {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-shrink: 0;
+    }
+
+    .flow-step-number {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      flex-shrink: 0;
+      z-index: 1;
+    }
+
+    .flow-step-line {
+      width: 2px;
+      background: var(--border);
+      flex: 1;
+      min-height: 20px;
+      margin: 4px 0;
+    }
+
+    .flow-step:last-child .flow-step-line { display: none; }
+
+    .flow-step-content {
+      padding: 4px 0 20px;
+    }
+
+    .flow-step-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .flow-step-desc {
+      font-size: 13.5px;
+      color: var(--text-muted);
+      line-height: 1.55;
+    }
+
+    /* ─── Test cards ───────────────────────────────────────────── */
+    .test-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin: 20px 0;
+    }
+
+    .test-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .test-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .test-badge {
+      background: #f0fdf4;
+      border: 1px solid #bbf7d0;
+      color: #15803d;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 4px;
+      letter-spacing: .03em;
+    }
+
+    .test-script {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .test-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+
+    .test-output {
+      background: var(--code-bg);
+      border-radius: 5px;
+      padding: 8px 12px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11.5px;
+      color: #15803d;
+    }
+
+    /* ─── Files list ───────────────────────────────────────────── */
+    .file-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .file-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 11px 16px;
+    }
+
+    .file-icon { font-size: 18px; }
+
+    .file-name {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .file-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-left: auto;
+    }
+
+    /* ─── Scrollspy active state ───────────────────────────────── */
+    .nav-link { cursor: pointer; }
+
+    /* ─── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .cards-grid, .test-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        transform: translateX(-100%);
+      }
+      .sidebar.open {
+        transform: translateX(0);
+      }
+      .overlay.open { display: block; }
+      .mobile-toggle { display: flex; }
+      .main { margin-left: 0; }
+      .content { padding: 60px 20px 60px; }
+      .hero { padding: 36px 24px; }
+      .hero h1 { font-size: 24px; }
+    }
+
+    @media (max-width: 480px) {
+      .hero-actions { flex-direction: column; }
+      .btn { justify-content: center; }
+    }
+
+    /* ─── Section divider ──────────────────────────────────────── */
+    .section-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 48px 0;
+    }
+  </style>
+</head>
+<body>
+
+<!-- Mobile toggle -->
+<button class="mobile-toggle" id="mobileToggle" aria-label="Open navigation">&#9776;</button>
+<div class="overlay" id="overlay"></div>
+
+<!-- ─── Sidebar ─────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <a class="sidebar-logo" href="#hero">
+      <span class="sidebar-logo-icon">⚡</span>
+      <span class="sidebar-logo-text">gRPC Data Stack</span>
+    </a>
+    <div class="sidebar-tagline">Documentation</div>
+  </div>
+
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Overview</div>
+    <a class="nav-link" href="#hero"><span class="nav-link-icon">🏠</span>Introduction</a>
+    <a class="nav-link" href="#architecture"><span class="nav-link-icon">🏗️</span>Architecture</a>
+    <a class="nav-link" href="#data-flow"><span class="nav-link-icon">🔄</span>Data Flow</a>
+
+    <div class="nav-group-label">Getting Started</div>
+    <a class="nav-link" href="#quick-start"><span class="nav-link-icon">🚀</span>Quick Start</a>
+    <a class="nav-link" href="#prerequisites"><span class="nav-link-icon">📋</span>Prerequisites</a>
+    <a class="nav-link" href="#installation"><span class="nav-link-icon">⚙️</span>Installation</a>
+    <a class="nav-link" href="#configuration"><span class="nav-link-icon">🔧</span>Configuration</a>
+
+    <div class="nav-group-label">Reference</div>
+    <a class="nav-link" href="#proto-schema"><span class="nav-link-icon">📄</span>Proto Schema</a>
+    <a class="nav-link" href="#mongodb"><span class="nav-link-icon">🗄️</span>MongoDB Collections</a>
+    <a class="nav-link" href="#running"><span class="nav-link-icon">▶️</span>Running the System</a>
+    <a class="nav-link" href="#usage"><span class="nav-link-icon">💡</span>Usage Examples</a>
+
+    <div class="nav-group-label">Operations</div>
+    <a class="nav-link" href="#testing"><span class="nav-link-icon">🧪</span>Testing</a>
+    <a class="nav-link" href="#scaling"><span class="nav-link-icon">📈</span>Scaling</a>
+    <a class="nav-link" href="#monitoring"><span class="nav-link-icon">📊</span>Monitoring</a>
+    <a class="nav-link" href="#publishing"><span class="nav-link-icon">📦</span>Publishing Images</a>
+    <a class="nav-link" href="#real-machine"><span class="nav-link-icon">🏭</span>Real Machine</a>
+  </nav>
+
+  <div class="sidebar-footer">
+    <a href="https://github.com/simonhoeck/grpc" target="_blank" rel="noopener">GitHub Repository</a>
+  </div>
+</aside>
+
+<!-- ─── Main content ─────────────────────────────────────────────── -->
+<main class="main">
+  <div class="content">
+
+    <!-- ── Hero ────────────────────────────────────────────────── -->
+    <section id="hero">
+      <div class="hero">
+        <div class="hero-badge">&#9889; IoT &amp; Industrial Data Acquisition</div>
+        <h1>gRPC <span class="arrow">&#8594;</span> MongoDB<br>Data Acquisition</h1>
+        <p class="hero-desc">
+          A high-throughput pipeline for IoT and industrial devices. Devices stream typed data packets over gRPC, a Redis Streams buffer absorbs bursts without loss, and a persistent worker writes everything into MongoDB — sensor and event data into a Time Series collection, binary payloads into GridFS.
+        </p>
+        <div class="hero-actions">
+          <a class="btn btn-outline" href="https://github.com/simonhoeck/grpc" target="_blank" rel="noopener">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+            View on GitHub
+          </a>
+          <a class="btn btn-primary" href="#quick-start">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5,3 19,12 5,21"/></svg>
+            Quick Start
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Architecture ─────────────────────────────────────────── -->
+    <section id="architecture">
+      <div class="section-label">System Design</div>
+      <h2>Architecture</h2>
+
+      <p>The stack has three independent tiers: a gRPC ingestion layer, a Redis Streams buffer, and a MongoDB persistence layer. Each tier can be scaled independently without affecting the others.</p>
+
+      <pre class="ascii-diagram"><code>Producer (gRPC client)
+    │
+    │  stream DataPacket
+    ▼
+gRPC Server  (port 50051, 50 workers)
+    │
+    │  XADD  data_stream
+    ▼
+Redis Streams  (consumer groups, no-loss buffer)
+    │
+    │  XREADGROUP
+    ▼
+Worker / Consumer
+    ├─── sensor / event  ──►  MongoDB  measurements  (Time Series)
+    └─── binary          ──►  MongoDB  GridFS
+                                   │
+                              Grafana dashboards</code></pre>
+
+      <h3>Key Design Decisions</h3>
+
+      <div class="cards-grid">
+        <div class="card">
+          <span class="card-icon">&#9889;</span>
+          <div class="card-title">Redis Streams as Buffer</div>
+          <div class="card-body">Decouples gRPC ingestion rate from MongoDB write speed. Survives traffic spikes without packet loss, even under heavy burst conditions.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128260;</span>
+          <div class="card-title">Consumer Groups</div>
+          <div class="card-body">Multiple worker instances process the same stream in parallel. Redis guarantees each message is delivered to exactly one worker — no duplicate writes.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128683;</span>
+          <div class="card-title">Failed-Packet Stream</div>
+          <div class="card-body">Messages that cannot be written go to <code>data_stream_failed</code> instead of being discarded. Nothing is silently lost — every packet is accounted for.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128336;</span>
+          <div class="card-title">Time Series Collection</div>
+          <div class="card-body">MongoDB native time series gives automatic bucketing and efficient range queries on <code>(timestamp, device_id, type)</code> with no extra indexing effort.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128230;</span>
+          <div class="card-title">GridFS for Binary</div>
+          <div class="card-body">Binary payloads (firmware images, waveforms, camera frames) are too large for a document field. GridFS handles chunking transparently with full metadata support.</div>
+        </div>
+        <div class="card">
+          <span class="card-icon">&#128202;</span>
+          <div class="card-title">Grafana Dashboards</div>
+          <div class="card-body">Grafana queries MongoDB directly using the MongoDB datasource plugin. The plugin is pre-installed automatically at container startup.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Data Flow ────────────────────────────────────────────── -->
+    <section id="data-flow">
+      <div class="section-label">Pipeline</div>
+      <h2>Data Flow</h2>
+
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-number">1</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Device opens a streaming call</div>
+            <div class="flow-step-desc">A device (the <strong>producer</strong>) opens a client-streaming gRPC call to <code>DataService.SendData</code>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-number">2</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">DataPacket messages are sent</div>
+            <div class="flow-step-desc">It sends one or more <code>DataPacket</code> messages — each with a type, timestamp, device ID, and payload.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-number">3</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Server buffers to Redis</div>
+            <div class="flow-step-desc">The <strong>gRPC server</strong> pushes each packet onto the <code>data_stream</code> Redis Stream and returns an <code>Ack</code>.</div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-number">4</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Worker routes and persists</div>
+            <div class="flow-step-desc">
+              The <strong>worker</strong> reads from <code>data_stream</code> via a consumer group:
+              <ul style="margin-top:8px;">
+                <li><code>type = "sensor"</code> or <code>type = "event"</code> &rarr; inserted into the <code>measurements</code> Time Series collection.</li>
+                <li><code>type = "binary"</code> &rarr; stored in GridFS; a reference document is added to <code>measurements</code>.</li>
+                <li>On write failure the message is moved to <code>data_stream_failed</code> and retried on the next cycle.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-left">
+            <div class="flow-step-number">5</div>
+            <div class="flow-step-line"></div>
+          </div>
+          <div class="flow-step-content">
+            <div class="flow-step-title">Grafana visualises</div>
+            <div class="flow-step-desc">Grafana queries MongoDB directly for dashboards and alerting.</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Quick Start ──────────────────────────────────────────── -->
+    <section id="quick-start">
+      <div class="section-label">Getting Started</div>
+      <h2>Quick Start</h2>
+
+      <p>Get all infrastructure services running with a single command. Make sure Docker Desktop is installed and running first.</p>
+
+      <div class="quick-start-command">
+        <code>docker compose up -d</code>
+      </div>
+
+      <p>This starts four containers in detached mode:</p>
+
+      <div class="service-list">
+        <div class="service-item">
+          <span class="service-icon">&#128204;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_redis</div>
+            <div class="service-desc">redis:7-alpine &mdash; Stream buffer with AOF persistence enabled</div>
+          </div>
+          <span class="service-port">:6379</span>
+        </div>
+        <div class="service-item">
+          <span class="service-icon">&#128196;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_mongodb</div>
+            <div class="service-desc">mongo:7 &mdash; Time Series + GridFS storage</div>
+          </div>
+          <span class="service-port">:27017</span>
+        </div>
+        <div class="service-item">
+          <span class="service-icon">&#128269;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_mongo_express</div>
+            <div class="service-desc">mongo-express:latest &mdash; Browser UI for MongoDB</div>
+          </div>
+          <span class="service-port">:8081</span>
+        </div>
+        <div class="service-item">
+          <span class="service-icon">&#128202;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_grafana</div>
+            <div class="service-desc">grafana/grafana:latest &mdash; Dashboards (MongoDB datasource pre-installed)</div>
+          </div>
+          <span class="service-port">:3000</span>
+        </div>
+      </div>
+
+      <p>Mongo Express and Grafana both wait for MongoDB's health check to pass before starting.</p>
+
+      <h3>Configure credentials</h3>
+      <p>Create a <code>.env</code> file in the project root. Docker Compose reads it automatically and substitutes the values into the service definitions.</p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">dotenv</span>
+        <pre><code class="language-bash"># .env  — do not commit this file
+MONGO_USER=admin
+MONGO_PASSWORD=changeme
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=admin</code></pre>
+      </div>
+
+      <div class="callout note">
+        <span class="callout-icon">&#8505;&#65039;</span>
+        <div>The values above are the built-in defaults from <code>docker-compose.yml</code>. Change them before running in any environment reachable from a network.</div>
+      </div>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Container env var</th><th>Service</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>MONGO_USER</code></td><td><code>MONGO_INITDB_ROOT_USERNAME</code></td><td>MongoDB</td></tr>
+            <tr><td><code>MONGO_PASSWORD</code></td><td><code>MONGO_INITDB_ROOT_PASSWORD</code></td><td>MongoDB</td></tr>
+            <tr><td><code>GRAFANA_USER</code></td><td><code>GF_SECURITY_ADMIN_USER</code></td><td>Grafana</td></tr>
+            <tr><td><code>GRAFANA_PASSWORD</code></td><td><code>GF_SECURITY_ADMIN_PASSWORD</code></td><td>Grafana</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Verify services are healthy</h3>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker compose ps</code></pre>
+      </div>
+
+      <p>All containers should show <code>healthy</code> (Redis and MongoDB have health checks configured) or at minimum <code>Up</code>.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Service</th><th>Container</th><th>Host Port</th><th>URL</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Redis</td><td><code>grpc_redis</code></td><td>6379</td><td><code>redis://localhost:6379</code></td></tr>
+            <tr><td>MongoDB</td><td><code>grpc_mongodb</code></td><td>27017</td><td><code>mongodb://localhost:27017</code></td></tr>
+            <tr><td>Mongo Express</td><td><code>grpc_mongo_express</code></td><td>8081</td><td><a href="http://localhost:8081" target="_blank">http://localhost:8081</a></td></tr>
+            <tr><td>Grafana</td><td><code>grpc_grafana</code></td><td>3000</td><td><a href="http://localhost:3000" target="_blank">http://localhost:3000</a></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Stop services</h3>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash"># Stop and remove containers, keep all volume data intact
+docker compose down</code></pre>
+      </div>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash"># Stop and remove containers AND delete all stored data
+docker compose down -v</code></pre>
+      </div>
+
+      <div class="callout warning">
+        <span class="callout-icon">&#9888;&#65039;</span>
+        <div><code>docker compose down -v</code> permanently deletes the <code>redis_data</code>, <code>mongo_data</code>, and <code>grafana_data</code> volumes. All measurements, binary files, and Grafana dashboard configurations will be lost.</div>
+      </div>
+    </section>
+
+    <!-- ── Prerequisites ───────────────────────────────────────── -->
+    <section id="prerequisites">
+      <div class="section-label">Setup</div>
+      <h2>Prerequisites</h2>
+
+      <ul>
+        <li><strong>Docker Desktop</strong> (Windows / macOS) or Docker Engine + Compose plugin (Linux)</li>
+        <li><strong>Python 3.10+</strong></li>
+        <li>Python packages: <code>grpcio</code>, <code>grpcio-tools</code>, <code>pymongo</code>, <code>redis</code></li>
+      </ul>
+
+      <p>Install Python dependencies:</p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">pip install grpcio grpcio-tools pymongo redis</code></pre>
+      </div>
+    </section>
+
+    <!-- ── Installation ─────────────────────────────────────────── -->
+    <section id="installation">
+      <div class="section-label">Setup</div>
+      <h2>Installation</h2>
+
+      <h3>1. Clone the repository</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">git clone &lt;repo-url&gt;
+cd gRPC</code></pre>
+      </div>
+
+      <h3>2. Start infrastructure</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker compose up -d</code></pre>
+      </div>
+
+      <h3>3. Generate Python gRPC stubs</h3>
+      <p>Generate Python stubs from the proto definition:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python -m grpc_tools.protoc \
+  -I./proto \
+  --python_out=. \
+  --grpc_python_out=. \
+  proto/data.proto</code></pre>
+      </div>
+      <p>This produces <code>data_pb2.py</code> and <code>data_pb2_grpc.py</code> in the project root.</p>
+    </section>
+
+    <!-- ── Configuration ────────────────────────────────────────── -->
+    <section id="configuration">
+      <div class="section-label">Reference</div>
+      <h2>Configuration</h2>
+
+      <p>All runtime settings are controlled via environment variables or a <code>.env</code> file.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GRPC_PORT</code></td>
+              <td><code>50051</code></td>
+              <td>Port the gRPC server listens on</td>
+            </tr>
+            <tr>
+              <td><code>GRPC_MAX_WORKERS</code></td>
+              <td><code>50</code></td>
+              <td>Thread pool size for the gRPC server</td>
+            </tr>
+            <tr>
+              <td><code>REDIS_URL</code></td>
+              <td><code>redis://localhost:6379</code></td>
+              <td>Redis connection string</td>
+            </tr>
+            <tr>
+              <td><code>REDIS_STREAM_KEY</code></td>
+              <td><code>data_stream</code></td>
+              <td>Primary Redis Stream key</td>
+            </tr>
+            <tr>
+              <td><code>REDIS_FAILED_KEY</code></td>
+              <td><code>data_stream_failed</code></td>
+              <td>Stream for undeliverable messages</td>
+            </tr>
+            <tr>
+              <td><code>REDIS_CONSUMER_GROUP</code></td>
+              <td><code>workers</code></td>
+              <td>Consumer group name</td>
+            </tr>
+            <tr>
+              <td><code>MONGO_URL</code></td>
+              <td><code>mongodb://localhost:27017</code></td>
+              <td>MongoDB connection string</td>
+            </tr>
+            <tr>
+              <td><code>MONGO_DB</code></td>
+              <td><code>daq</code></td>
+              <td>Database name</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Proto Schema ─────────────────────────────────────────── -->
+    <section id="proto-schema">
+      <div class="section-label">Reference</div>
+      <h2>Proto Schema</h2>
+
+      <p>File: <code>proto/data.proto</code></p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">syntax = "proto3";
+
+message DataPacket {
+  string type      = 1;  // "sensor" | "event" | "binary"
+  int64  timestamp = 2;  // Unix epoch, milliseconds
+  string device_id = 3;
+  bytes  payload   = 4;  // JSON-encoded for sensor/event; raw bytes for binary
+}
+
+message Ack {
+  bool success = 1;
+}
+
+service DataService {
+  rpc SendData(stream DataPacket) returns (Ack);
+}</code></pre>
+      </div>
+
+      <h3>Payload Conventions</h3>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Type</th><th>Payload Format</th><th>Example</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>sensor</code></td>
+              <td>JSON object</td>
+              <td><code>{"temperature": 23.4, "humidity": 61}</code></td>
+            </tr>
+            <tr>
+              <td><code>event</code></td>
+              <td>JSON object</td>
+              <td><code>{"code": "E_OVERHEAT", "severity": "warn"}</code></td>
+            </tr>
+            <tr>
+              <td><code>binary</code></td>
+              <td>Raw bytes</td>
+              <td>firmware image, ADC waveform, camera frame</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── MongoDB Collections ──────────────────────────────────── -->
+    <section id="mongodb">
+      <div class="section-label">Reference</div>
+      <h2>MongoDB Collections</h2>
+
+      <h3>measurements (Time Series)</h3>
+      <ul>
+        <li><strong>Granularity:</strong> <code>seconds</code></li>
+        <li><strong>Time field:</strong> <code>timestamp</code></li>
+        <li><strong>Meta fields:</strong> <code>device_id</code>, <code>type</code></li>
+        <li><strong>Index:</strong> compound on <code>(timestamp, device_id, type)</code></li>
+        <li>Stores all <code>sensor</code> and <code>event</code> packets, plus reference documents for binary uploads</li>
+      </ul>
+
+      <h3>GridFS (fs.files / fs.chunks)</h3>
+      <ul>
+        <li>Stores raw binary payloads</li>
+        <li>Each file's metadata includes <code>device_id</code>, <code>timestamp</code>, and <code>type = "binary"</code></li>
+        <li>The <code>measurements</code> document for a binary packet contains the GridFS <code>file_id</code> for cross-referencing</li>
+      </ul>
+
+      <h3>Browsing data with Mongo Express</h3>
+      <p>Open <a href="http://localhost:8081" target="_blank">http://localhost:8081</a> — no login required.</p>
+      <ol>
+        <li>In the left-hand database list, click <strong>grpcdata</strong>.</li>
+        <li>Click <strong>measurements</strong> to browse sensor and event documents stored in the Time Series collection.</li>
+        <li>The <strong>fs.files</strong> and <strong>fs.chunks</strong> collections contain the GridFS binary payloads. Use <code>fs.files</code> to find a file by metadata and <code>fs.chunks</code> for raw binary chunks.</li>
+      </ol>
+    </section>
+
+    <!-- ── Running the System ───────────────────────────────────── -->
+    <section id="running">
+      <div class="section-label">Operations</div>
+      <h2>Running the System</h2>
+
+      <h3>1. Start infrastructure</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker compose up -d</code></pre>
+      </div>
+
+      <h3>2. Start the gRPC server</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python server.py</code></pre>
+      </div>
+      <p>The server listens on <code>0.0.0.0:50051</code> and pushes incoming packets to Redis.</p>
+
+      <h3>3. Start the worker</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python worker.py</code></pre>
+      </div>
+      <p>The worker joins the <code>workers</code> consumer group on <code>data_stream</code> and writes to MongoDB. Run multiple instances for parallel processing.</p>
+    </section>
+
+    <!-- ── Usage Examples ───────────────────────────────────────── -->
+    <section id="usage">
+      <div class="section-label">Reference</div>
+      <h2>Usage Examples</h2>
+
+      <h3>Sending sensor data from a Python client</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">python</span>
+        <pre><code class="language-python">import grpc
+import data_pb2
+import data_pb2_grpc
+import time
+import json
+
+channel = grpc.insecure_channel("localhost:50051")
+stub = data_pb2_grpc.DataServiceStub(channel)
+
+def generate_packets():
+    for i in range(10):
+        payload = json.dumps({"temperature": 20.0 + i, "humidity": 50 + i}).encode()
+        yield data_pb2.DataPacket(
+            type="sensor",
+            timestamp=int(time.time() * 1000),
+            device_id="device-001",
+            payload=payload,
+        )
+
+ack = stub.SendData(generate_packets())
+print("Success:", ack.success)</code></pre>
+      </div>
+
+      <h3>Sending an event</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">python</span>
+        <pre><code class="language-python">payload = json.dumps({"code": "E_STARTUP", "severity": "info"}).encode()
+
+ack = stub.SendData(iter([
+    data_pb2.DataPacket(
+        type="event",
+        timestamp=int(time.time() * 1000),
+        device_id="device-001",
+        payload=payload,
+    )
+]))</code></pre>
+      </div>
+
+      <h3>Sending binary data</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">python</span>
+        <pre><code class="language-python">with open("firmware_v2.bin", "rb") as f:
+    raw = f.read()
+
+ack = stub.SendData(iter([
+    data_pb2.DataPacket(
+        type="binary",
+        timestamp=int(time.time() * 1000),
+        device_id="device-001",
+        payload=raw,
+    )
+]))</code></pre>
+      </div>
+    </section>
+
+    <!-- ── Testing ──────────────────────────────────────────────── -->
+    <section id="testing">
+      <div class="section-label">Quality</div>
+      <h2>Testing</h2>
+
+      <p>The <code>tests/</code> directory contains four test scripts covering different scenarios. Both <code>server.py</code> and <code>worker.py</code> must be running before executing any test.</p>
+
+      <div class="test-grid">
+        <div class="test-card">
+          <div class="test-card-header">
+            <span class="test-badge">PASS</span>
+            <span class="test-script">test_single.py</span>
+          </div>
+          <div class="test-desc">100 sensor packets from one client</div>
+          <div class="test-output">[test_single] success=True  (100 packets sent)</div>
+        </div>
+        <div class="test-card">
+          <div class="test-card-header">
+            <span class="test-badge">PASS</span>
+            <span class="test-script">test_multi.py</span>
+          </div>
+          <div class="test-desc">100 sensor packets each from 20 concurrent clients (2,000 total)</div>
+          <div class="test-output">[test_multi] 20/20 clients OK — 2000 packets sent, 0 failed</div>
+        </div>
+        <div class="test-card">
+          <div class="test-card-header">
+            <span class="test-badge">PASS</span>
+            <span class="test-script">test_mixed.py</span>
+          </div>
+          <div class="test-desc">10 sensor + 5 event + 3 binary packets in a single stream</div>
+          <div class="test-output">[test_mixed] success=True  (10 sensor + 5 event + 3 binary)</div>
+        </div>
+        <div class="test-card">
+          <div class="test-card-header">
+            <span class="test-badge">PASS</span>
+            <span class="test-script">test_load.py</span>
+          </div>
+          <div class="test-desc">1,000 packets each from 50 concurrent clients (50,000 total)</div>
+          <div class="test-output">[test_load] 50/50 clients OK</div>
+        </div>
+      </div>
+
+      <h3>Run the tests</h3>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python tests/test_single.py
+python tests/test_multi.py
+python tests/test_mixed.py
+python tests/test_load.py</code></pre>
+      </div>
+
+      <p>Override the server address with the <code>GRPC_SERVER</code> environment variable (default: <code>localhost:50051</code>):</p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">GRPC_SERVER=192.168.1.10:50051 python tests/test_single.py</code></pre>
+      </div>
+
+      <h3>Expected output — test_load.py</h3>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">output</span>
+        <pre><code class="language-bash">[test_load] Starting 50 clients × 1000 packets = 50000 total ...
+[test_load] 50/50 clients OK
+[test_load] Total packets : 50000
+[test_load] Total time    : 8.3s
+[test_load] Throughput    : 6024 packets/s
+[test_load] Avg per client: 7.41s</code></pre>
+      </div>
+
+      <div class="callout note">
+        <span class="callout-icon">&#8505;&#65039;</span>
+        <div>Exact timing figures vary by hardware. The important indicators are <code>50/50 clients OK</code> and <code>0 failed</code>.</div>
+      </div>
+    </section>
+
+    <!-- ── Scaling ──────────────────────────────────────────────── -->
+    <section id="scaling">
+      <div class="section-label">Operations</div>
+      <h2>Scaling</h2>
+
+      <p>The system scales horizontally at two independent layers: the gRPC server and the worker. Redis consumer groups coordinate parallel workers automatically.</p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Connected Clients</th><th>Recommended Approach</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>2 – 10</td><td>Default configuration</td></tr>
+            <tr><td>10 – 50</td><td>Increase <code>GRPC_MAX_WORKERS</code> (e.g. to 100)</td></tr>
+            <tr><td>50 – 200</td><td>Run multiple <code>worker.py</code> instances — they automatically share load via Redis consumer groups</td></tr>
+            <tr><td>200+</td><td>Run multiple gRPC server instances behind a load balancer (e.g. Nginx or Envoy), plus multiple workers</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Running multiple workers</h3>
+      <p>Each worker instance needs a unique consumer name within the group:</p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">WORKER_NAME=worker-1 python worker.py
+WORKER_NAME=worker-2 python worker.py</code></pre>
+      </div>
+
+      <p>Redis consumer groups guarantee that each message is delivered to exactly one worker, preventing duplicate writes.</p>
+    </section>
+
+    <!-- ── Monitoring ───────────────────────────────────────────── -->
+    <section id="monitoring">
+      <div class="section-label">Operations</div>
+      <h2>Monitoring</h2>
+
+      <h3>Grafana</h3>
+      <p>Grafana is available at <a href="http://localhost:3000" target="_blank">http://localhost:3000</a> after <code>docker compose up -d</code>. Log in with the credentials set in your <code>.env</code> file (default: <code>admin</code> / <code>admin</code>).</p>
+
+      <p>The MongoDB datasource plugin (<code>grafana-mongodb-datasource</code>) is installed automatically at container startup. Add it under <strong>Connections &gt; Data sources</strong> and point it at <code>mongodb://grpc_mongodb:27017</code>.</p>
+
+      <h3>Redis stream health</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash"># Number of messages waiting in the main stream
+redis-cli xlen data_stream
+
+# Number of messages in the failed stream (should stay at 0)
+redis-cli xlen data_stream_failed
+
+# Consumer group lag (pending messages per consumer)
+redis-cli xpending data_stream workers - + 10</code></pre>
+      </div>
+
+      <h3>MongoDB document count</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash"># Total measurements stored
+mongosh --eval 'db.measurements.countDocuments({})'
+
+# Sensor data only
+mongosh --eval 'db.measurements.countDocuments({type: "sensor"})'
+
+# Binary file count (GridFS)
+mongosh --eval 'db.fs.files.countDocuments({})'</code></pre>
+      </div>
+    </section>
+
+    <!-- ── Publishing Images ─────────────────────────────────────── -->
+    <section id="publishing">
+      <div class="section-label">Deployment</div>
+      <h2>Publishing Docker Images</h2>
+
+      <p>Once images are built locally (<code>docker compose build</code>), push them to a registry so any machine can pull and run the stack without source code.</p>
+
+      <h3>Option A — GitHub Container Registry (ghcr.io)</h3>
+
+      <h4>1. Create a Personal Access Token</h4>
+      <p>Go to <a href="https://github.com/settings/tokens" target="_blank">github.com/settings/tokens</a> and create a classic token with the <code>write:packages</code> scope:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">export CR_PAT=ghp_YourTokenHere</code></pre>
+      </div>
+
+      <h4>2. Log in</h4>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">echo $CR_PAT | docker login ghcr.io -u simonhoeck --password-stdin</code></pre>
+      </div>
+
+      <h4>3. Tag and push the server image</h4>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker tag grpc-server ghcr.io/simonhoeck/grpc-server:latest
+docker push ghcr.io/simonhoeck/grpc-server:latest</code></pre>
+      </div>
+
+      <h4>4. Tag and push the worker image</h4>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker tag grpc-worker ghcr.io/simonhoeck/grpc-worker:latest
+docker push ghcr.io/simonhoeck/grpc-worker:latest</code></pre>
+      </div>
+
+      <h4>5. Update docker-compose.yml on the target machine</h4>
+      <div class="code-block-wrapper">
+        <span class="code-lang">yaml</span>
+        <pre><code class="language-yaml"># Before (build from source)
+grpc-server:
+  build: .
+
+# After (pull from registry)
+grpc-server:
+  image: ghcr.io/simonhoeck/grpc-server:latest</code></pre>
+      </div>
+
+      <h3>Option B — Docker Hub</h3>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash"># 1. Log in
+docker login
+
+# 2. Tag and push server
+docker tag grpc-server simonhoeck/grpc-server:latest
+docker push simonhoeck/grpc-server:latest
+
+# 3. Tag and push worker
+docker tag grpc-worker simonhoeck/grpc-worker:latest
+docker push simonhoeck/grpc-worker:latest</code></pre>
+      </div>
+
+      <h3>Pulling on another machine</h3>
+      <p>Only <code>docker-compose.yml</code> and a <code>.env</code> file are needed on the target machine — no source code, no Python environment.</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker compose pull && docker compose up -d</code></pre>
+      </div>
+    </section>
+
+    <!-- ── Real Machine ──────────────────────────────────────────── -->
+    <section id="real-machine">
+      <div class="section-label">Deployment</div>
+      <h2>Connecting a Real Machine</h2>
+
+      <p>Run <code>producer.py</code> directly on an industrial machine or embedded PC to stream live measurements to the server.</p>
+
+      <h3>Files needed on the machine</h3>
+      <p>Copy only these three files — nothing else is required:</p>
+
+      <div class="file-list">
+        <div class="file-item">
+          <span class="file-icon">&#128196;</span>
+          <span class="file-name">data_pb2.py</span>
+          <span class="file-desc">Generated protobuf stub</span>
+        </div>
+        <div class="file-item">
+          <span class="file-icon">&#128196;</span>
+          <span class="file-name">data_pb2_grpc.py</span>
+          <span class="file-desc">Generated gRPC stub</span>
+        </div>
+        <div class="file-item">
+          <span class="file-icon">&#128196;</span>
+          <span class="file-name">producer.py</span>
+          <span class="file-desc">Data acquisition script to customize</span>
+        </div>
+      </div>
+
+      <div class="callout note">
+        <span class="callout-icon">&#8505;&#65039;</span>
+        <div>The generated stub files are already committed to the repository. There is no need to install <code>grpcio-tools</code> or run <code>protoc</code> on the machine.</div>
+      </div>
+
+      <h3>Install on the machine</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">pip install grpcio</code></pre>
+      </div>
+      <p>Only <code>grpcio</code> (the runtime) is needed. <code>grpcio-tools</code> is a development-only dependency.</p>
+
+      <h3>Configuration via environment variables</h3>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Variable</th><th>Default</th><th>Description</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>GRPC_SERVER</code></td>
+              <td><code>localhost:50051</code></td>
+              <td>IP address and port of the server PC (e.g. <code>192.168.1.10:50051</code>)</td>
+            </tr>
+            <tr>
+              <td><code>DEVICE_ID</code></td>
+              <td><code>anlage-001</code></td>
+              <td>Unique name that identifies this machine in the database</td>
+            </tr>
+            <tr>
+              <td><code>INTERVAL</code></td>
+              <td><code>1.0</code></td>
+              <td>Measurement interval in seconds</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">GRPC_SERVER=192.168.1.10:50051 DEVICE_ID=presse-01 INTERVAL=0.5 python producer.py</code></pre>
+      </div>
+
+      <h3>What to customize in producer.py</h3>
+
+      <p><strong>read_sensors()</strong> — replace the placeholder values with real hardware reads. Supported protocols include Modbus, OPC-UA, Serial/RS-232, GPIO, and any Python-accessible interface. The function must return a <code>dict</code> of measurement values; the keys become the field names stored in MongoDB.</p>
+
+      <p><strong>read_events()</strong> — optional. Return a list of event dicts (alarms, status changes, error codes) whenever something noteworthy occurs, or <code>None</code> if there is nothing to report.</p>
+
+      <h3>Windows Firewall</h3>
+      <p>The server PC needs port 50051 open for inbound TCP connections. Run this once on the server PC with administrator privileges:</p>
+
+      <div class="code-block-wrapper">
+        <span class="code-lang">cmd</span>
+        <pre><code class="language-bash">netsh advfirewall firewall add rule name="gRPC" dir=in action=allow protocol=TCP localport=50051</code></pre>
+      </div>
+
+      <h3>Auto-reconnect</h3>
+      <p>If the connection to the server is lost (network interruption, server restart), <code>producer.py</code> automatically waits 5 seconds and then reconnects. No manual intervention is required.</p>
+    </section>
+
+  </div><!-- /.content -->
+</main><!-- /.main -->
+
+<script>
+  // ─── highlight.js init ────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function () {
+    // Initialize highlight.js on all code blocks inside pre elements
+    document.querySelectorAll('pre:not(.ascii-diagram) code').forEach(function (block) {
+      hljs.highlightElement(block);
+    });
+
+    // ─── Sidebar active link on scroll ──────────────────────────
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link');
+
+    function updateActiveLink() {
+      let current = '';
+      sections.forEach(function (section) {
+        const top = section.getBoundingClientRect().top;
+        if (top <= 80) {
+          current = section.getAttribute('id');
+        }
+      });
+
+      navLinks.forEach(function (link) {
+        link.classList.remove('active');
+        const href = link.getAttribute('href');
+        if (href === '#' + current) {
+          link.classList.add('active');
+        }
+      });
+    }
+
+    window.addEventListener('scroll', updateActiveLink, { passive: true });
+    updateActiveLink();
+
+    // ─── Mobile sidebar toggle ──────────────────────────────────
+    const toggle = document.getElementById('mobileToggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    function openSidebar() {
+      sidebar.classList.add('open');
+      overlay.classList.add('open');
+    }
+
+    function closeSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('open');
+    }
+
+    toggle.addEventListener('click', openSidebar);
+    overlay.addEventListener('click', closeSidebar);
+
+    // Close sidebar on nav link click (mobile)
+    navLinks.forEach(function (link) {
+      link.addEventListener('click', function () {
+        if (window.innerWidth <= 768) {
+          closeSidebar();
+        }
+      });
+    });
+  });
+</script>
+</body>
+</html>
