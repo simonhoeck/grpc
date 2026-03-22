@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gh repo:*)",
+      "Bash(git -C \"C:/Users/Simon/Documents/claude code/gRPC\" remote -v)",
+      "Bash(git -C \"C:/Users/Simon/Documents/claude code/gRPC\" log --oneline -3)"
+    ]
+  }
+}
