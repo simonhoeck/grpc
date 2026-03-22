@@ -19,6 +19,7 @@ A high-throughput data acquisition pipeline for IoT and industrial devices. Devi
 - [Testing](#testing)
 - [Scaling](#scaling)
 - [Monitoring](#monitoring)
+- [Publishing the Docker Images](#publishing-the-docker-images)
 - [Connecting a Real Machine (Anlage)](#connecting-a-real-machine-anlage)
 
 ---
@@ -569,6 +570,110 @@ mongosh --eval 'db.measurements.countDocuments({type: "sensor"})'
 # Binary file count (GridFS)
 mongosh --eval 'db.fs.files.countDocuments({})'
 ```
+
+---
+
+## Publishing the Docker Images
+
+Once the images are built locally (`docker compose build`), you can push them to a registry so that any other machine can pull and run the stack without needing the source code.
+
+### Option A — GitHub Container Registry (ghcr.io)
+
+**1. Create a Personal Access Token**
+
+Go to <https://github.com/settings/tokens> and create a classic token with the `write:packages` scope. Store it in an environment variable:
+
+```bash
+export CR_PAT=ghp_YourTokenHere
+```
+
+**2. Log in**
+
+```bash
+echo $CR_PAT | docker login ghcr.io -u simonhoeck --password-stdin
+```
+
+**3. Tag and push the server image**
+
+```bash
+docker tag grpc-server ghcr.io/simonhoeck/grpc-server:latest
+docker push ghcr.io/simonhoeck/grpc-server:latest
+```
+
+**4. Tag and push the worker image**
+
+```bash
+docker tag grpc-worker ghcr.io/simonhoeck/grpc-worker:latest
+docker push ghcr.io/simonhoeck/grpc-worker:latest
+```
+
+**5. Update `docker-compose.yml` on the target machine**
+
+Replace the `build:` key with the registry image, for example:
+
+```yaml
+# Before (build from source)
+grpc-server:
+  build: .
+
+# After (pull from registry)
+grpc-server:
+  image: ghcr.io/simonhoeck/grpc-server:latest
+```
+
+Apply the same change for the worker service.
+
+---
+
+### Option B — Docker Hub
+
+**1. Log in**
+
+```bash
+docker login
+```
+
+You need a Docker Hub account at <https://hub.docker.com>.
+
+**2. Tag and push the server image**
+
+```bash
+docker tag grpc-server simonhoeck/grpc-server:latest
+docker push simonhoeck/grpc-server:latest
+```
+
+**3. Tag and push the worker image**
+
+```bash
+docker tag grpc-worker simonhoeck/grpc-worker:latest
+docker push simonhoeck/grpc-worker:latest
+```
+
+**4. Update `docker-compose.yml` on the target machine**
+
+```yaml
+# Before (build from source)
+grpc-server:
+  build: .
+
+# After (pull from Docker Hub)
+grpc-server:
+  image: simonhoeck/grpc-server:latest
+```
+
+Apply the same change for the worker service.
+
+---
+
+### Pulling and starting on another machine
+
+Only `docker-compose.yml` and a `.env` file are needed on the target machine — no source code, no Python environment.
+
+```bash
+docker compose pull && docker compose up -d
+```
+
+`docker compose pull` fetches the latest image versions from the registry. `docker compose up -d` then starts all services in detached mode.
 
 ---
 

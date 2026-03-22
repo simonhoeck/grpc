@@ -33,6 +33,38 @@ services:
       timeout: 5s
       retries: 5
 
+  server:
+    build: .
+    command: python server.py
+    container_name: grpc_server
+    restart: unless-stopped
+    ports:
+      - "50051:50051"
+    environment:
+      REDIS_HOST: redis
+      GRPC_PORT: "50051"
+      MAX_WORKERS: "50"
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  worker:
+    build: .
+    command: python worker.py
+    container_name: grpc_worker
+    restart: unless-stopped
+    environment:
+      REDIS_HOST: redis
+      MONGO_HOST: mongodb
+      MONGO_USER: ${MONGO_USER:-admin}
+      MONGO_PASSWORD: ${MONGO_PASSWORD:-changeme}
+      CONSUMER_NAME: worker-1
+    depends_on:
+      redis:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+
   mongo-express:
     image: mongo-express:latest
     container_name: grpc_mongo_express

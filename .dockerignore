@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+tests/
+producer.py
+grpc-mongodb-setup.pdf
+CLAUDE.md
+README.md
+.claude/
