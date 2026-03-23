@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+import "base-options.proto";
+import "base-types.proto";
+
+package besi.imageprocessing.types.v1_0_0;
+
+// Quality1 represents the quality '1' criteria of a search result from 0 to 100 percent.
+message Quality1 {
+    besi.types.v1_0_0.Percentage quality = 1;
+}
+
+// Quality2 represents the quality '2' criteria of a search result from 0 to 100 percent.
+message Quality2 {
+    besi.types.v1_0_0.Percentage quality = 1;
+}
+
+// Quality1Bag contains multiple quality '1' criterias.
+message Quality1Bag {
+    repeated besi.types.v1_0_0.Percentage qualities = 1;
+}
+
+// Quality2Bag contains multiple quality '2' criterias.
+message Quality2Bag {
+    repeated besi.types.v1_0_0.Percentage qualities = 1;
+}
+
+// SearchType represents the type of the search as a string.
+message SearchType {
+    string name = 1;
+}
+
+// LightScenario represents a composition of light and brightness settings.
+message LightScenario {
+    besi.types.v1_0_0.Percentage channel1 = 1;
+    besi.types.v1_0_0.Percentage channel2 = 2;
+    besi.types.v1_0_0.Percentage channel3 = 3;
+}
+
+// FiducialSearchResults represents the search result of an performed search containing the position, quality criterias as well as the quality thresholds.
+message FiducialSearchResult {
+    Quality1 thresholdQuality1 = 1;
+    Quality2 thresholdQuality2 = 2;
+    SearchType searchType = 3;
+
+    Quality1Bag qualities1 = 4;
+    Quality2Bag qualities2 = 5;
+    besi.types.v1_0_0.Position2dBag positions = 6 [(besi.opts.v1_0_0.field).coordinateSystem = "fov0"];
+}
+

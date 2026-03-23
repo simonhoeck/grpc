@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+package besi.automation.types.v1_0_0;
+
+// NotchOrientation specifies the orientation of a notch of a substrate.
+enum NotchOrientation {
+  UNDEFINED = 0;  // The orientation is not defined or not applicable.
+  FRONT = 1;      // The notch is oriented towards the front.
+  REAR = 2;       // The notch is oriented towards the rear.
+  LEFT = 3;       // The notch is oriented to the left side.
+  RIGHT = 4;      // The notch is oriented to the right side.
+}
+
+// SubstrateId uniquely identifies a substrate.
+message SubstrateId {
+  string value = 1; // Unique identifier for a substrate.
+}
+
+// SubstrateAcquiredId represents an identifier acquired from the reader or the aligner during substrate processing.
+message SubstrateAcquiredId {
+  string value = 1; // Identifier acquired from the reader or the aligner during substrate handling or processing.
+}
+
+// CarrierId uniquely identifies a carrier, which is used to transport the substrates.
+message CarrierId {
+  string value = 1; // Unique identifier for a carrier.
+}
+
+// CarrierLocationId uniquely identifies the location of a carrier within a system.
+message CarrierLocationId {
+  string value = 1; // Unique identifier for the location of a carrier.
+}
+
+// CarrierSlotNumber represents the specific slot number within a carrier where a substrate is placed.
+message CarrierSlotNumber {
+  uint32 value = 1; // The slot number in a carrier that holds a substrate.
+}
+
+// LoadPortId uniquely identifies a load port on equipment where carriers are loaded or unloaded.
+message LoadPortId {
+  string value = 1; // Unique identifier for a load port.
+}
+
+// LoadPortNumber represents the numerical designation of a load port.
+message LoadPortNumber {
+  uint32 value = 1; // Numerical designation of a load port.
+}
+
+// BinCode represents a classification or categorization code of a component.
+message BinCode {
+  uint32 value = 1; // Numerical code used for classification of a component.
+}
+
+// ProcessJobId uniquely identifies a E40 process job.
+message ProcessJobId {
+  string value = 1; // Unique identifier for a E40 process job.
+}
+
+// PPID (Process Program ID) uniquely identifies a product.
+message PPID {
+  string value = 1; // Unique identifier for a process program or recipe.
+}
+
+// ControlJobId uniquely identifies a control job.
+message ControlJobId {
+  string value = 1; // Unique identifier for a control job.
+}
+
+message LotId {
+  string value = 1;
+}
+
+// LotInfo aggregates identifiers related to a production lot, containing process jobs identifier, products name, and control jobs identifiers.
+message LotInfo {
+  ProcessJobId processJobId = 1; // Identifier for a specific process job associated with the lot.
+  PPID ppId = 2;                 // Process Program ID associated with the lot.
+  ControlJobId controlJobId = 3; // Identifier for the control job managing the lot's processes.
+}

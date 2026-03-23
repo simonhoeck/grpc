@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+import "component-types.proto";
+import "component-pickup-types.proto";
+import "production-types.proto";
+
+package besi.component.services.pickup.v1_0_0;
+
+message ReportReply
+{
+}
+
+message Report {
+  // id represents the unique id of the component.
+  // This id can be used to aggregate data between multiple services.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // The traces field contains the collected trace samples during the component pickup from the component wafer to the flip tool. The field is optional.
+  optional besi.component.types.pickup.v1_0_0.PickupTraces traces = 2;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 3;
+}
+
+// With PickupDataService, the equipment pushes the collected pickup step data to the configured endpoint.
+service PickupDataService
+{
+  // PushReport is invoked after each component pickup providing the report of the pickup process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

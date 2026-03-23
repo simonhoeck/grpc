@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+import "base-types.proto";
+
+package besi.autofocus.types.v1_0_0;
+
+// Represents an auto-focus result including the determined height as well as the signal noise ratio and the raw sharpness values.
+message AutoFocusResult {
+    // The determinedHeight represents the determined height on which the auto-focus measurement was performed.
+    besi.types.v1_0_0.Position1d determinedHeight = 1;
+
+    // The rawSharpnessData contains the samples of the auto-focus measurements. Each sample represents a sharpness value.
+    // The size of the array varies depending on the surface on which the measurement was performed.
+    repeated uint32 rawSharpnessData = 2;
+
+    // The signalNoiseRatio represents the signal-to-noise ratio of the measurement. The higher the SNR the better the measurement.
+    // SNR is defined as the ratio of signal amplitude to noise amplitude.
+    float signalNoiseRatio = 3;
+}

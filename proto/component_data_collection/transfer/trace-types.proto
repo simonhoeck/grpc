@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package besi.trace.types.v1_0_0;
+
+// Valve represents the stage of a binary valve.
+message ValveBag
+{
+  // The stage of the valve.
+  repeated bool on = 1;
+}

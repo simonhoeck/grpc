@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+import "base-options.proto";
+import "base-types.proto";
+import "base-imageprocessing-types.proto";
+import "base-autofocus-types.proto";
+import "toolfiducial-types.proto";
+
+package besi.alignment.types.v1_0_0;
+
+
+// UcAdjustPoint represents an adjust point within a UcAdjust.
+message UcAdjustPoint {
+    // The positionZ contains the Z height used for the adjust point. 
+    besi.types.v1_0_0.Position1d positionZ = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+    // The directLightScenario contains the used light settings of the direct light.
+    besi.imageprocessing.types.v1_0_0.LightScenario directLightScenario = 3;
+
+    // The componentFiducialResult contains the result of the component fiducial.
+    besi.imageprocessing.types.v1_0_0.FiducialSearchResult componentFiducialResult = 4;
+
+    // The toolFiducialResults contains the results of the tool fiducial search results.
+    besi.toolfiducial.types.v1_0_0.ToolFiducialSearchResultBag toolFiducialResults = 5;
+
+    // The componentFiducialAutoFocusResult is an optional field containing the auto-focus results on the component fiducial.
+    // Depending on the configuration of the product and on the production state, the field is set or not.
+    optional besi.autofocus.types.v1_0_0.AutoFocusResult componentFiducialAutoFocusResult = 6 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+    // The toolFiducialAutoFocusResult is an optional field containing the auto-focus results on the tool fiducial.
+    // Depending on the configuration of the product and on the production state, the field is set or not.
+    optional besi.autofocus.types.v1_0_0.AutoFocusResult toolFiducialAutoFocusResult = 7 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+}
+
+// The TwoPointUcAdjust contains the results of a two-point uplooking camera adjust used to determine the position of the component on the Pp-tool.
+message TwoPointUcAdjust {
+    // The firstAdjustPoint contains the adjust point data of the upper left fiducial of the component.
+    UcAdjustPoint firstAdjustPoint = 1;
+
+    // The firstAdjustPoint contains the adjust point data of the upper right fiducial of the component.
+    UcAdjustPoint secondAdjustPoint = 2;
+
+    // The measuredXYComponentOnToolXyOffset describes the measured component XY offset on the pick and place tool. It is measured in the G0 coordinate system. 
+    besi.types.v1_0_0.Offset2d measuredXYComponentOnToolOffset = 3 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+    // The measuredXYComponentOnToolXyOffset describes the measured component angle offset on the pick and place tool. It is measured in the G0 coordinate system. 
+    besi.types.v1_0_0.AngleOffset measuredComponentOnToolAngleOffset = 4 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+    // The measuredComponentFiducialDistance describes the measured distance between the two component fiducials in the component-coordinate system.
+    besi.types.v1_0_0.Offset1d measuredComponentFiducialDistance = 5 [(besi.opts.v1_0_0.field).coordinateSystem = "cc0"];
+}
+
+
+// The BondingPositionAdjustPoint represents one adjust point of the bonding position adjust.
+message BondingPositionAdjustPoint {
+    // The positionZ contains the Z height used for the adjust point. 
+    besi.types.v1_0_0.Position1d positionZ = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+    
+    // The directLightScenario contains the used light settings of the direct light.
+    besi.imageprocessing.types.v1_0_0.LightScenario directLightScenario = 3;
+
+    // The bondingPositionFiducialResult contains the result of the bonding position fiducial.
+    besi.imageprocessing.types.v1_0_0.FiducialSearchResult bondingPositionFiducialResult = 4;
+}
+
+// The TwoPointBondingPositionAdjust contains the data of a two-point bonding-position adjust.
+// It includes the bonding-position adjust points and the corresponding theta iterations information.
+message TwoPointBondingPositionAdjust {
+    // iteration describes the number of the bonding position adjust.
+    uint32 iteration = 1;
+
+    // The firstAdjustPoint contains the adjust point data of the upper left fiducial of the bonding position.
+    BondingPositionAdjustPoint firstAdjustPoint = 2;
+
+    // The firstAdjustPoint contains the adjust point data of the upper right fiducial of the bonding position.
+    BondingPositionAdjustPoint secondAdjustPoint = 3;
+
+    // The thetaIterations contains data of all executed theta iterations for this bonding position adjust.
+    // The size of thetaIterations depends on the process and material quality and is therefore not static.
+    // It will at least contain one item.
+    repeated ThetaIteration thetaIterations = 4;
+
+    // The measuredBondingPositionFiducialDistance describes the distance between the two bonding position fiducials in the bonding-position coordinate system.
+    besi.types.v1_0_0.Offset1d measuredBondingPositionFiducialDistance = 5 [(besi.opts.v1_0_0.field).coordinateSystem = "bp0"];
+
+    // The measuredCorrectionXY describes the measured required correction between the component and the bonding-position in the G0 coordinate system.
+    besi.types.v1_0_0.Offset2d measuredCorrectionXY = 6 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+    // The measuredCorrectionUV describes the measured required correction between the component and the bonding-position in the UV (Nano-Stage) coordinate system.
+    // Depending on the configuration of the equipment, this field is set or not.
+    optional besi.types.v1_0_0.Offset2d measuredCorrectionUV = 7 [(besi.opts.v1_0_0.field).coordinateSystem = "uv0"];
+}
+
+// The BondingPositionAdjustBag represents an array of bonding position adjusts.
+message TwoPointBondingPositionAdjustBag {
+    repeated TwoPointBondingPositionAdjust bondingPositionAdjusts = 1;
+
+    // The firstBondingPositionFiducialAutoFocusResult is an optional field containing the auto-focus results of the first adjust point on the bonding-position fiducial.
+    // Depending on the configuration of the product and on the production state, the field is set or not.
+    optional besi.autofocus.types.v1_0_0.AutoFocusResult firstBondingPositionFiducialAutoFocusResult = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+    
+    // The secondBondingPositionFiducialAutoFocusResult is an optional field containing the auto-focus results of the second adjust point on the bonding-position fiducial.
+    // Depending on the configuration of the product and on the production state, the field is set or not.
+    optional besi.autofocus.types.v1_0_0.AutoFocusResult secondBondingPositionFiducialAutoFocusResult = 3 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+}
+
+
+// The ThetaIterationAdjustPoint contains the tool fiducial search results of one theta iteration of one adjust point.
+message ThetaIterationAdjustPoint {
+    // The tool fiducial search results.
+    besi.toolfiducial.types.v1_0_0.ToolFiducialSearchResultBag toolFiducialResults = 2;
+}
+
+// The ThetaIteration contains the results of one theta iteration. It contains the tool fiducial search results as well as the calculated corrections needed.
+message ThetaIteration {
+    // iteration describes the number of the iteration.
+    uint32 iteration = 1;
+
+    // The firstAdjustPoint contains the data of the main theta iteration adjust point.
+    // In case of dual substrate camera mode it reflects the left adjust point of the theta iteration from a component point of view.
+    ThetaIterationAdjustPoint firstAdjustPoint = 2;
+
+    // The secondAdjustPoint contains the data of the secondary theta iteration adjust point.
+    // In case of single substrate camera mode the secondAdjustPoint is not set.
+    // In case of dual substrate camera mode it reflects the right adjust point of the theta iteration from a component point of view.
+    optional ThetaIterationAdjustPoint secondAdjustPoint = 3;
+
+    // measuredCorrectionTheta contains the measured correction of the theta axis.
+    besi.types.v1_0_0.Angle measuredCorrectionTheta = 4 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+}
+
+
+// Alignment contains the data of one alignment cycle starting containing the uplooking camera adjust, theta iteration and the bonding position adjust.
+message Alignment {
+    // The ucAdjust contains the data of the performed uplooking camera adjust of the component.
+    TwoPointUcAdjust ucAdjust = 1;
+
+    // The bondingPositionAdjusts contains the performed bonding position adjusts. Depending on the configuration of the product and the material quality, the number of items changes.
+    TwoPointBondingPositionAdjustBag bondingPositionAdjusts = 2;
+}
+
+// AlignmentBag represents an array of alignment datasets.
+// The array contains multiple alignment datasets if the alignment was repeated for some reason.
+// If no repetition was required, the array contains only one dataset.
+message AlignmentBag {
+    repeated Alignment alignments = 1;
+}

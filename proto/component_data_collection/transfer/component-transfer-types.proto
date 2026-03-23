@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+import "base-types.proto";
+import "base-options.proto";
+import "base-imageprocessing-types.proto";
+import "trace-types.proto";
+
+package besi.component.transfer.types.v1_1_0;
+
+enum ComponentCenterPickupInspectionMode
+{
+  // The SingleCamera mode is used for small components fitting into the FoV of the ScM.
+  SingleCamera = 0;
+
+  // The DualCamera mode is used for larger components exceeding the FoV of the ScM.
+  DualCamera = 1;
+
+  // The SingleCameraRecovery mode is used in case of an automatic recovery triggered by the DualCamera mode. 
+  SingleCameraRecovery = 2;
+}
+
+message ComponentCenterPickupInspectionAdjustPoint
+{
+  // The directLightScenario contains the used light settings of the direct light.
+  besi.imageprocessing.types.v1_0_0.LightScenario directLightScenario = 1;
+
+  // The searchResult contains the result of the fiducial used for the inspection.
+  besi.imageprocessing.types.v1_0_0.FiducialSearchResult searchResult = 2;
+}
+
+message TwoPointComponentCenterPickupInspection
+{
+  // The mode describes in which way the inspection was performed.
+  ComponentCenterPickupInspectionMode mode = 1;
+
+  // The measuredOffsetXY contains the xy-offset of the component on the flip-tool measured by the inspection.
+  besi.types.v1_0_0.Offset2d measuredOffsetXY = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // The measuredOffsetTheta contains the angular-offset of the component on the flip-tool measured by the inspection.
+  besi.types.v1_0_0.AngleOffset measuredOffsetTheta = 3 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // The firstAdjustPoint contains the data related to the first adjust-point. 
+  ComponentCenterPickupInspectionAdjustPoint firstAdjustPoint = 4;
+
+  // The secondAdjustPoint contains the data related to the second adjust-point.
+  ComponentCenterPickupInspectionAdjustPoint secondAdjustPoint = 5;
+}
+
+// TransferTraces represents the trace samples gathered during the component transfer from the flip unit to the bond head. The data is represented as a time series data collection. Each row represents a trace sample.
+message TransferTraces
+{
+  // The startTime represents the timestamp when the trace was started.
+  google.protobuf.Timestamp startTime = 1;
+
+  // The sampleTime represents the interval between each sample.
+  repeated google.protobuf.Duration sampleTime = 2;
+
+  // bondHeadTheta contains the position samples of the bond head theta axis.
+  besi.types.v1_0_0.AngleBag bondHeadTheta = 3;
+
+  // bondHeadThetaTrackingError contains the position tracking error samples of the bond head theta axis.
+  besi.types.v1_0_0.AngleOffsetBag bondHeadThetaTrackingError = 4;
+
+  // bondHeadThetaCurrent contains the axis current samples of the bond head theta axis.
+  besi.types.v1_0_0.CurrentBag bondHeadThetaCurrent = 5;
+
+  // bondHeadZ contains the position samples of the bond head z axis.
+  besi.types.v1_0_0.Position1dBag bondHeadZ = 6;
+
+  // bondHeadZTrackingError contains the position tracking error samples of the bond head z axis.
+  besi.types.v1_0_0.Offset1dBag bondHeadZTrackingError = 7;
+
+  // bondHeadZCurrent contains the axis current samples of the bond head theta axis.
+  besi.types.v1_0_0.CurrentBag bondHeadZCurrent = 8;
+
+  // bondHeadW contains the position samples of the bond head w axis.
+  besi.types.v1_0_0.Position1dBag bondHeadW = 9;
+
+  // bondHeadWTrackingError contains the position tracking error samples of the bond head w axis.
+  besi.types.v1_0_0.Offset1dBag bondHeadWTrackingError = 10;
+
+  // bondHeadWCurrent contains the axis current samples of the bond head w axis.
+  besi.types.v1_0_0.CurrentBag bondHeadWCurrent = 11;
+
+  // bondHeadV contains the position samples of the bond head v axis.
+  besi.types.v1_0_0.Position1dBag bondHeadV = 12;
+
+  // bondHeadVTrackingError contains the position tracking error samples of the bond head v axis.
+  besi.types.v1_0_0.Offset1dBag bondHeadVTrackingError = 13;
+
+  // bondHeadVCurrent contains the axis current samples of the bond head v axis.
+  besi.types.v1_0_0.CurrentBag bondHeadVCurrent = 14;
+
+  // flipUnitTheta contains the position samples of the theta axis.
+  besi.types.v1_0_0.AngleBag flipUnitTheta = 15;
+
+  // flipUnitThetaTrackingError contains the position tracking error samples of the theta axis.
+  besi.types.v1_0_0.AngleOffsetBag flipUnitThetaTrackingError = 16;
+
+  // flipUnitThetaCurrent contains the axis current samples of the theta axis.
+  besi.types.v1_0_0.CurrentBag flipUnitThetaCurrent = 17;
+
+  // flipUnitZ contains the position samples of the z axis.
+  besi.types.v1_0_0.Position1dBag flipUnitZ = 18;
+
+  // flipUnitZTrackingError contains the position tracking error samples of the z axis.
+  besi.types.v1_0_0.Offset1dBag flipUnitZTrackingError = 19;
+
+  // flipUnitZCurrent contains the axis current samples of the z axis.
+  besi.types.v1_0_0.CurrentBag flipUnitZCurrent = 20;
+
+  // bondHeadForce contains the measured force samples of the bond head.
+  besi.types.v1_0_0.ForceBag bondHeadForce = 21;
+
+  // bondHeadComponentVacuumValve contains the state values of the component vacuum valve of the bond head.
+  besi.trace.types.v1_0_0.ValveBag bondHeadComponentVacuumValve = 22;
+
+  // flipToolComponentVacuumValve contains the state values of the component vacuum valve of the flip unit.
+  besi.trace.types.v1_0_0.ValveBag flipToolComponentVacuumValve = 23;
+
+  // bondHeadComponentNitrogenValve contains the state values of the component nitrogen valve of the bond head.
+  besi.trace.types.v1_0_0.ValveBag bondHeadComponentNitrogenValve = 24;
+
+  // flipToolComponentNitrogenValve contains the state values of the component nitrogen valve of the flip unit.
+  besi.trace.types.v1_0_0.ValveBag flipToolComponentNitrogenValve = 25;
+
+  // bondHeadComponentVacuum contains the samples of the component vacuum sensor of the bond head.
+  besi.types.v1_0_0.PercentageBag bondHeadComponentVacuum = 26;
+
+  // flipToolComponentVacuum contains the samples of the component vacuum sensor of the flip unit.
+  besi.types.v1_0_0.PercentageBag flipToolComponentVacuum = 27;
+
+}
+
+message ComponentTransfer
+{
+  // The transferPositionXY represents the XYZ position of the tool-tip used for the transfer from the flip unit to the bond head.
+  besi.types.v1_0_0.Position3d transferPositionXYZ = 1 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // The transferPositionTheta represents the theta position of the tool-tip used for the transfer from the flip unit to the bond head.
+  besi.types.v1_0_0.Angle transferPositionTheta = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // The traces field contains the collected trace samples during the component transfer from the flip unit to the bond head. The field is optional.
+  optional TransferTraces traces = 3;
+}

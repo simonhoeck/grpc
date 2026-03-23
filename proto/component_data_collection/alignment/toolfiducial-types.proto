@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "base-types.proto";
+import "base-imageprocessing-types.proto";
+
+package besi.toolfiducial.types.v1_0_0;
+
+
+// ToolFiducialPosition represents a specific fiducial within the tool fiducial matrix.
+message ToolFiducialPosition {
+    uint32 row = 1;
+    uint32 column = 2;
+}
+
+// ToolFiducialSearchResult represents a serch result of a tool fiducial search.
+message ToolFiducialSearchResult {
+    // The position of the fiducial within the tool fiducial.
+    ToolFiducialPosition indexPosition = 1;
+
+    // The quality 1 results of the performed search. In case of snap averaging it contains multiple results.
+    besi.imageprocessing.types.v1_0_0.Quality1Bag qualities1 = 4;
+
+    // The quality 2 results of the performed search. In case of snap averaging it contains multiple results.
+    besi.imageprocessing.types.v1_0_0.Quality2Bag qualities2 = 5;
+
+    // The position results of the performed search within the FOV. In case of snap averaging it contains multiple results.
+    besi.types.v1_0_0.Position2dBag positions = 6;
+}
+
+// ToolFiducialSearchResultBag contains multiple tool fiducial search results sharing the same quality thresholds.
+message ToolFiducialSearchResultBag {
+    // The tool fiducial searches.
+    repeated ToolFiducialSearchResult toolFiducialResults = 1;
+
+    // The quality 1 criteria shared by all tool fiducial search results.
+    besi.imageprocessing.types.v1_0_0.Quality1 thresholdQuality1 = 2;
+
+    // The quality 2 criteria shared by all tool fiducial search results.
+    besi.imageprocessing.types.v1_0_0.Quality2 thresholdQuality2 = 3;
+}

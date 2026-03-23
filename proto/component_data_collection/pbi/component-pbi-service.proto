@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+import "base-options.proto";
+import "base-types.proto";
+import "component-types.proto";
+import "production-types.proto";
+
+package besi.component.services.pbi.v1_0_0;
+
+message PostBondInspection
+{
+  // The measuredOffsetXY contains the measured xy-offset of the component relative to the bonding position determined during the post-bond-inspection.
+  besi.types.v1_0_0.Offset2d measuredOffsetXY = 1 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // The measuredOffsetTheta contains the measured theta-offset of the component relative to the bonding position determined during the post-bond-inspection.
+  besi.types.v1_0_0.AngleOffset measuredOffsetTheta = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+}
+
+message ReportReply
+{
+}
+
+message Report {
+  // id represents the unique id of the component.
+  // This id can be used to aggregate data between multiple services.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // The postBondInspection field contains the data for the post-bond-inspection.
+  PostBondInspection postBondInspection = 2;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 3;
+}
+
+// With PostBondInspectionDataService, the equipment pushes the collected post-bond-inspection step data to the configured endpoint.
+service PostBondInspectionDataService
+{
+  // PushReport is invoked after each post-bond-inspection providing the report of the post-bond-inspection process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

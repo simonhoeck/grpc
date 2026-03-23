@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+import "component-types.proto";
+import "component-transfer-types.proto";
+import "production-types.proto";
+
+package besi.component.services.transfer.v1_0_0;
+
+
+message ReportReply
+{
+}
+
+message Report {
+  // id represents the unique id of the component.
+  // This id can be used to aggregate data between multiple services.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // The componentCenterPickupInspection field contains the data of the component-center-pickup-inspection.
+  // This field is optional. Depending on the configuration of the product, this field is filled or not.  
+  optional besi.component.transfer.types.v1_1_0.TwoPointComponentCenterPickupInspection componentCenterPickupInspection = 2;
+
+  // The componentTransfer field contains the data for the component transfer from the flipper to the bonding head.
+  besi.component.transfer.types.v1_1_0.ComponentTransfer componentTransfer = 3;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 4;
+}
+
+// With TransferDataService, the equipment pushes the collected transfer step data to the configured endpoint.
+service TransferDataService
+{
+  // PushReport is invoked after each component transfer providing the report of the transfer process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

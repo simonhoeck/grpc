@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+import "component-types.proto";
+import "alignment-types.proto";
+import "production-types.proto";
+
+package besi.component.services.alignment.v1_0_0;
+
+message ReportReply
+{
+}
+
+// Report provides the data collected during the alignment step of a component.
+// It contains data about the used adjusts and the calculated correction movements.
+message Report {
+  // id represents the unique id of the component.
+  // This id can be used to aggregate data between multiple services.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // alignments represents an array of alignment datasets.
+  // The array contains multiple alignment datasets if the alignment was repeated for some reason.
+  // If no repetition was required, the array contains only one dataset.
+  besi.alignment.types.v1_0_0.AlignmentBag alignments = 2;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 3;
+}
+
+// With AlignmentDataService, the equipment pushes the collected alignment step data to the configured endpoint.
+service AlignmentDataService
+{
+  // PushReport is invoked after each component alignment providing the report of the alignment process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

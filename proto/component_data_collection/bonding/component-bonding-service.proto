@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+import "component-types.proto";
+import "bonding-types.proto";
+import "production-types.proto";
+
+package besi.component.services.bonding.v1_0_0;
+
+// Report contains data of the bonding step. It provides data of the applied bond profile and the corresponding traces if configured.
+message Report
+{
+  // id represents the unique id of the component.
+  // This id can be used to aggregate data between multiple services.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // targetMaterialInfo contains information about the target material where the component was placed.
+  besi.component.types.v1_1_0.MaterialInfo targetMaterialInfo = 2;
+
+  // bondProfile provides information about the applied bonding profile.
+  besi.bonding.types.v1_0_0.BondProfile bondProfile = 3;
+
+  // traces contains the measured trace samples during the bonding profile in a time-series format.
+  optional besi.bonding.types.v1_0_0.Traces traces = 4;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 5;
+}
+
+message ReportReply
+{
+
+}
+
+// With BondingDataService, the equipment pushes the collected bonding step data to the configured endpoint.
+service BondingDataService
+{
+  // PushReport is invoked after each bond providing the report of the bonding process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

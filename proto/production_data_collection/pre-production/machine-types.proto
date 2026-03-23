@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package besi.machine.types.v1_0_0;
+
+// MachineName provides information related with machine name (type).
+message MachineName {
+  string value = 1; 
+}
+
+// SerialNumber provides information about serial number of the machine.
+message SerialNumber {
+  string value = 1; 
+}

@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package besi.production.types.preproduction.v1_0_0;
+
+// SideToolReference consists of PPTool and FlipTool(if applicable) references per selected side.
+message SideToolReference {
+  // It represents the name of the used PpTool.
+  string ppTool = 1;
+
+  // It represents the name of the used FlipTool (if applicable).
+  optional string flipTool = 2;
+}
+
+// ToolReference contains information of tools.
+message ToolReference {
+  // It represents the tool references of left side.
+  optional SideToolReference left = 1;
+
+  // It represents the tool references of right side.
+  optional SideToolReference right = 2;
+
+  // It represents the name of the used EsTool (depending if carrier wafer or frame wafer).
+  optional string esTool = 3;
+}
+
+// ComponentInfo consists of name of the component and tool references to the component.
+message ComponentInfo {
+  // It represents the identifier of the component.
+  string name = 1;
+
+  // The ToolReference provides information of tools used for each component type.
+  ToolReference toolReference = 2;
+}
+
+// A collection of component information.
+message ComponentInfoBag {
+  repeated ComponentInfo values = 1; 
+}

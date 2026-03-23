@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+import "base-types.proto";
+import "component-types.proto";
+import "automation-types.proto";
+import "production-types.proto";
+
+package besi.component.services.creation.v1_0_0;
+
+// Report contains data of the bonding step. It provides data of the applied bond profile and the corresponding traces if configured.
+message Report
+{
+  // id represents the unique id of the component.
+  besi.component.types.v1_1_0.ComponentId id = 1;
+
+  // the side of the pick and place system
+  besi.types.v1_0_0.Side side = 2;
+
+  // the name of the component
+  string componentName = 3;
+
+  // the name of the pick and pacle tool
+  string ppToolName = 4;
+
+  // the name of the bonding position
+  string bondingPositionName = 5;
+
+  // targetMaterialInfo contains information about the source material where the component comes from.
+  besi.component.types.v1_1_0.MaterialInfo sourceMaterialInfo = 6;
+
+  // lotInformation provides information about the lot.
+  besi.automation.types.v1_0_0.LotInfo lotInfo = 7;
+
+  // productionId represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId productionId = 8;
+}
+
+message ReportReply
+{
+
+}
+
+// With BondingDataService, the equipment pushes the collected bonding step data to the configured endpoint.
+service CreationDataService
+{
+  // PushReport is invoked after each bond providing the report of the bonding process step.
+  rpc PushReport (Report) returns (ReportReply);
+}

@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package besi.production.types.v1_0_0;
+
+// ProductionSideSelection represents the the side(s) that production is run.
+enum ProductionSideSelection {
+  UNKNOWN = 0;    // Unknown
+  BOTH = 1;       // Both of the gantries are used for the production run.
+  LEFT = 2;       // Only the left gantry is used for the production run.
+  RIGHT = 3;      // Only the right gantry is used for the production run.
+}
+
+// ProductionId represents a unique identifier for the production.
+message ProductionId {
+  string id = 1;
+}

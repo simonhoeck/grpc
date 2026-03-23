@@ -1,0 +1,63 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+import "base-types.proto";
+import "base-options.proto";
+import "trace-types.proto";
+
+package besi.component.types.pickup.v1_0_0;
+
+message PickupTraces {
+  // The startTime represents the timestamp when the trace was started.
+  google.protobuf.Timestamp startTime = 1;
+
+  // The sampleTime represents the interval between each sample.
+  repeated google.protobuf.Duration sampleTime = 2;
+
+  // flipperZ contains the position samples of the flipper z axis.
+  besi.types.v1_0_0.Position1dBag flipperZ = 6;
+
+  // flipperZTrackingError contains the position tracking error samples of the flipper z axis.
+  besi.types.v1_0_0.Offset1dBag flipperZTrackingError = 7;
+
+  // flipperZCurrent contains the axis current samples of the flipper z axis.
+  besi.types.v1_0_0.CurrentBag flipperZCurrent = 8;
+
+  // flipperTheta contains the position samples of the flipper theta axis.
+  besi.types.v1_0_0.AngleBag flipperTheta = 9;
+
+  // flipperThetaTrackingError contains the position tracking error samples of the flipper theta axis.
+  besi.types.v1_0_0.AngleOffsetBag flipperThetaTrackingError = 10;
+
+  // flipperThetaCurrent contains the axis current samples of the flipper theta axis.
+  besi.types.v1_0_0.CurrentBag flipperThetaCurrent = 11;
+
+  // ejectNeedle contains the position samples of the needle axis.
+  besi.types.v1_0_0.Position1dBag ejectNeedle = 12;
+
+  // ejectNeedleTrackingError contains the position tracking error samples of the needle axis.
+  besi.types.v1_0_0.Offset1dBag ejectNeedleTrackingError = 13;
+
+  // ejectNeedleCurrent contains the axis current samples of the needle axis.
+  besi.types.v1_0_0.CurrentBag ejectNeedleCurrent = 14;
+
+  // flipperForce contains the measured force samples of the flipper. This value has no unit.
+  besi.types.v1_0_0.ForceBag flipperForce = 15 [(besi.opts.v1_0_0.field).unit.type = undefined];
+
+  // flipperComponentVacuumValve contains the state values of the component vacuum valve of the flipper.
+  besi.trace.types.v1_0_0.ValveBag flipperComponentVacuumValve = 16;
+
+  // ejectToolVacuumValve contains the state values of the component vacuum valve of the eject tool.
+  besi.trace.types.v1_0_0.ValveBag ejectToolVacuumValve = 17;
+
+  // ejectToolAirValve contains the state values of the component blow off valve of the eject tool.
+  besi.trace.types.v1_0_0.ValveBag ejectToolAirValve = 18;
+
+  // flipToolComponentVacuum contains the sample of the component vacuum sensor of the flipper.
+  besi.types.v1_0_0.PercentageBag flipToolComponentVacuum = 19;
+
+  // ejectToolVacuum contains the sample of the eject tool.
+  besi.types.v1_0_0.PercentageBag ejectToolVacuum = 20;
+}

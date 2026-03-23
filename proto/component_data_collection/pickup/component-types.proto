@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+import "google/protobuf/wrappers.proto";
+import "automation-types.proto";
+
+package besi.component.types.v1_1_0;
+
+// ComponentId represents a unique identifier for a component processed in the equipment.
+message ComponentId
+{
+  string id = 1;
+}
+
+// MaterialInfo contains data about the component wafer or the substrate wafer where the component was picked / placed.
+message MaterialInfo
+{
+  // substrateId contains the id of the substrate. Usually it holds the E90 id.
+  besi.automation.types.v1_0_0.SubstrateId substrateId = 1;
+
+  // substrateAcquiredId contains the acquired id of the substrate. Usually it holds the E90 read id read by the aligner or a reader device.
+  besi.automation.types.v1_0_0.SubstrateAcquiredId substrateAcquiredId = 2;
+
+  // carrierId contains the id of the carrier where the substrate belongs to.
+  besi.automation.types.v1_0_0.CarrierId carrierId = 3;
+
+  // loadPortNumber contains the number of the load port where the carrier is placed.
+  besi.automation.types.v1_0_0.LoadPortNumber loadPortNumber = 4;
+
+  // carrierSlotNumber contains the slot number where the substrate belongs to.
+  besi.automation.types.v1_0_0.CarrierSlotNumber carrierSlotNumber = 5;
+
+  // notch represents the orientation of the substrate in the equipment.
+  besi.automation.types.v1_0_0.NotchOrientation notch = 6;
+
+  // row contains the row of the component in the substrate coordinate system
+  google.protobuf.Int32Value row = 7;
+
+  // col contains the column of the component in the substrate coordinate system
+  google.protobuf.Int32Value col = 8;
+
+  // binCode contains the bin code of the component.
+  besi.automation.types.v1_0_0.BinCode binCode = 9;
+
+  // lotId contains the id of the lot related to the wafer.
+  besi.automation.types.v1_0_0.LotId lotId = 10;
+
+  // row_e142 contains the row of the device in the substrate map coordinate system.
+  optional google.protobuf.Int32Value row_e142 = 11;
+
+  // col_e142 contains the column of the device in the substrate map coordinate system.
+  optional google.protobuf.Int32Value col_e142 = 12;
+}

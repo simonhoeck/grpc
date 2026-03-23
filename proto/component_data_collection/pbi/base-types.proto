@@ -1,0 +1,330 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+import "base-options.proto";
+
+package besi.types.v1_0_0;
+
+extend google.protobuf.EnumValueOptions {
+  string stringName = 50000;
+}
+
+// Side represents the gantry side on the equipment.
+enum Side {
+  // The side is not defined or not applicable.
+  unknown_side = 0 [(stringName) = "Not set"];
+
+  // left represents the left gantry of the equipment.
+  left = 1 [(stringName) = "Left"];
+
+  // right represents the left gantry of the equipment.
+  right = 2 [(stringName) = "Right"];
+}
+
+// Represents a one-dimensional offset measured in meters.
+message Offset1d {
+  double value = 1; // The offset value in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of one-dimensional offset values measured in meters.
+message Offset1dBag {
+  repeated double values = 1; // List of offset values in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents a two-dimensional offset measured in meters.
+message Offset2d {
+  double x = 1; // The offset value along the X-axis in meters.
+  double y = 2; // The offset value along the Y-axis in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of two-dimensional offsets measured in meters.
+message Offset2dBag {
+  repeated Offset2d values = 1; // List of two-dimensional offset values.
+}
+
+// Represents a three-dimensional offset measured in meters.
+message Offset3d {
+  double x = 1; // The offset value along the X-axis in meters.
+  double y = 2; // The offset value along the Y-axis in meters.
+  double z = 3; // The offset value along the Z-axis in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of three-dimensional offsets measured in meters.
+message Offset3dBags {
+  repeated Offset3d values = 1; // List of three-dimensional offset values.
+}
+
+// Represents a one-dimensional position measured in meters.
+message Position1d {
+  double value = 1; // The position value in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of one-dimensional position values measured in meters.
+message Position1dBag {
+  repeated double values = 1; // List of position values in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents a two-dimensional position measured in meters.
+message Position2d {
+  double x = 1; // The position value along the X-axis in meters.
+  double y = 2; // The position value along the Y-axis in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of two-dimensional position values measured in meters.
+message Position2dBag {
+  repeated Position2d values = 1; // List of two-dimensional position values.
+}
+
+// Represents a three-dimensional position measured in meters.
+message Position3d {
+  double x = 1; // The position value along the X-axis in meters.
+  double y = 2; // The position value along the Y-axis in meters.
+  double z = 3; // The position value along the Z-axis in meters.
+  option (besi.opts.v1_0_0.msg).unit.type = meter;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of three-dimensional position values measured in meters.
+message Position3dBag {
+  repeated Position3d values = 1; // List of three-dimensional position values.
+}
+
+// Represents an angle measured in degrees.
+message Angle {
+  double value = 1; // The angle value in degrees.
+  option (besi.opts.v1_0_0.msg).unit.type = deg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of angle values measured in degrees.
+message AngleBag {
+  repeated double values = 1; // List of angle values in degrees.
+  option (besi.opts.v1_0_0.msg).unit.type = deg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents an angle offset measured in degrees.
+message AngleOffset {
+  double value = 1; // The angle offset value in degrees.
+  option (besi.opts.v1_0_0.msg).unit.type = deg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of angle offset values measured in degrees.
+message AngleOffsetBag {
+  repeated double values = 1; // List of angle offset values in degrees.
+  option (besi.opts.v1_0_0.msg).unit.type = deg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents electric current measured in amperes.
+message Current {
+  double value = 1; // The current value in amperes.
+  option (besi.opts.v1_0_0.msg).unit.type = ampere;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of electric current values measured in amperes.
+message CurrentBag {
+  repeated double values = 1; // List of current values in amperes.
+  option (besi.opts.v1_0_0.msg).unit.type = ampere;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents mass measured in kilograms.
+message Mass {
+  double value = 1; // The mass value in kilograms.
+  option (besi.opts.v1_0_0.msg).unit.type = kg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of mass values measured in kilograms.
+message MassBag {
+  repeated double values = 1; // List of mass values in kilograms.
+  option (besi.opts.v1_0_0.msg).unit.type = kg;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents electrical voltage measured in volts.
+message Voltage {
+  double value = 1; // The voltage value in volts.
+  option (besi.opts.v1_0_0.msg).unit.type = volt;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of voltage values measured in volts.
+message VoltageBag {
+  repeated double values = 1; // List of voltage values in volts.
+  option (besi.opts.v1_0_0.msg).unit.type = volt;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents pressure measured in pascals.
+message Pressure {
+  double value = 1; // The pressure value in pascals.
+  option (besi.opts.v1_0_0.msg).unit.type = pascal;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of pressure values measured in pascals.
+message PressureBag {
+  repeated double values = 1; // List of pressure values in pascals.
+  option (besi.opts.v1_0_0.msg).unit.type = pascal;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents frequency measured in hertz.
+message Frequency {
+  double value = 1; // The frequency value in hertz.
+  option (besi.opts.v1_0_0.msg).unit.type = hertz;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of frequency values measured in hertz.
+message FrequencyBag {
+  repeated double values = 1; // List of frequency values in hertz.
+  option (besi.opts.v1_0_0.msg).unit.type = hertz;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents force measured in newtons.
+message Force {
+  double value = 1; // The force value in newtons.
+  option (besi.opts.v1_0_0.msg).unit.type = newton;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of force values measured in newtons.
+message ForceBag {
+  repeated double values = 1; // List of force values in newtons.
+  option (besi.opts.v1_0_0.msg).unit.type = newton;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents a rate of force increase measured in kilograms per second.
+message ForceRamp {
+  double value = 1; // The rate of force increase in kilograms per second.
+  option (besi.opts.v1_0_0.msg).unit.type = kgPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of rates of force increase measured in kilograms per second.
+message ForceRampBag {
+  repeated double values = 1; // List of rates of force increase in kilograms per second.
+  option (besi.opts.v1_0_0.msg).unit.type = kgPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents temperature measured in degrees Celsius.
+message Temperature {
+  double value = 1; // The temperature value in degrees Celsius.
+  option (besi.opts.v1_0_0.msg).unit.type = degreeCelsius;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of temperature values measured in degrees Celsius.
+message TemperatureBag {
+  repeated double values = 1; // List of temperature values in degrees Celsius.
+  option (besi.opts.v1_0_0.msg).unit.type = degreeCelsius;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents a rate of temperature change measured in degrees Celsius per second.
+message TemperatureRamp {
+  double value = 1; // The rate of temperature change in degrees Celsius per second.
+  option (besi.opts.v1_0_0.msg).unit.type = degreeCelsiusPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of rates of temperature change measured in degrees Celsius per second.
+message TemperatureRampBag {
+  repeated double values = 1; // List of rates of temperature change in degrees Celsius per second.
+  option (besi.opts.v1_0_0.msg).unit.type = degreeCelsiusPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents velocity measured in meters per second.
+message Velocity {
+  double value = 1; // The velocity value in meters per second.
+  option (besi.opts.v1_0_0.msg).unit.type = meterPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of velocity values measured in meters per second.
+message VelocityBag {
+  repeated double values = 1; // List of velocity values in meters per second.
+  option (besi.opts.v1_0_0.msg).unit.type = meterPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents acceleration measured in meters per second squared.
+message Acceleration {
+  double value = 1; // The acceleration value in meters per second squared.
+  option (besi.opts.v1_0_0.msg).unit.type = meterPerSecondsSquared;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of acceleration values measured in meters per second squared.
+message AccelerationBag {
+  repeated double values = 1; // List of acceleration values in meters per second squared.
+  option (besi.opts.v1_0_0.msg).unit.type = meterPerSecondsSquared;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents angular velocity measured in degrees per second.
+message AngularVelocity {
+  double value = 1; // The angular velocity value in degrees per second.
+  option (besi.opts.v1_0_0.msg).unit.type = degPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of angular velocity values measured in degrees per second.
+message AngularVelocityBag {
+  repeated double values = 1; // List of angular velocity values in degrees per second.
+  option (besi.opts.v1_0_0.msg).unit.type = degPerSeconds;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents angular acceleration measured in degrees per second squared.
+message AngularAcceleration {
+  double value = 1; // The angular acceleration value in degrees per second squared.
+  option (besi.opts.v1_0_0.msg).unit.type = degPerSecondsSquared;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// A collection of angular acceleration values measured in degrees per second squared.
+message AngularAccelerationBag {
+  repeated double values = 1; // List of angular acceleration values in degrees per second squared.
+  option (besi.opts.v1_0_0.msg).unit.type = degPerSecondsSquared;
+  option (besi.opts.v1_0_0.msg).unit.prefix = base;
+}
+
+// Represents a percentage, with values constrained between 0 and 100.
+message Percentage {
+  double value = 1 [
+    (besi.opts.v1_0_0.field).range.min = 0,
+    (besi.opts.v1_0_0.field).range.max = 100
+  ]; // The percentage value, must be between 0% and 100%.
+}
+
+// A collection of percentage values, each constrained between 0 and 100.
+message PercentageBag {
+  repeated double values = 1 [
+    (besi.opts.v1_0_0.field).range.min = 0,
+    (besi.opts.v1_0_0.field).range.max = 100
+  ]; // List of percentage values, each must be between 0% and 100%.
+}

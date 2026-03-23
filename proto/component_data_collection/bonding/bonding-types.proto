@@ -1,0 +1,148 @@
+syntax = "proto3";
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+import "base-options.proto";
+import "base-types.proto";
+
+package besi.bonding.types.v1_0_0;
+
+// BondProfileStage represents a stage within the bond profile.
+message Stage
+{
+  // targetPositionW contains the target position of the W axis in the WG0 coordinate system.
+  besi.types.v1_0_0.Position1d targetPositionW = 1 [(besi.opts.v1_0_0.field).coordinateSystem = "wg0"];
+
+  // targetPositionZ contains the target position of the Z axis in the G0 coordinate system which represents the focus point of the substrate camera in the unshifted focal plane.
+  besi.types.v1_0_0.Position1d targetPositionZ = 2 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+
+  // targetPositionToolTip contains the target position of the tool tip in the G0 coordinate system which represents the surface of the nozzle of the pick and place tool.
+  besi.types.v1_0_0.Position1d targetPositionToolTip = 3 [(besi.opts.v1_0_0.field).coordinateSystem = "g0"];
+}
+
+// BondProfile contains data of the bonding profiled used to bond a component.
+message BondProfile
+{
+  // The diePlaced timestamp represents the time when the component was bonded.
+  google.protobuf.Timestamp diePlaced = 1;
+
+  // The afterAlignment stage represents the stage in the bonding profile before moving the bonding head down.
+  Stage afterAlignment = 2;
+
+  // The touchdownStart stage represents the stage after the fast move / before the touchdown move.
+  Stage touchdownStart = 3;
+
+  // The touchdownDetected stage represents the stage where the touchdown occurred with the defined force.
+  Stage touchdownDetected = 4;
+
+  // The forceRampStart stage represents the start of the force ramp. This stage is optional.
+  optional Stage forceRampStart = 5;
+
+  // The afterBondProfile stage represents the final stage of the bonding profile after the bonding head moved back up to the initial height.
+  Stage afterBondProfile = 6;
+}
+
+// Valve represents the stage of a binary valve.
+message Valve
+{
+  // The stage of the valve.
+  repeated bool on = 1;
+}
+
+// Traces represents the trace samples gathered during the bonding process. The data is represented as a time series data collection. Each row represents a trace sample.
+message Traces
+{
+  // The startTime represents the timestamp when the trace was started.
+  google.protobuf.Timestamp startTime = 1;
+
+  // The sampleTime represents the interval between each sample.
+  repeated google.protobuf.Duration sampleTime = 2;
+
+  // theta contains the position samples of the theta axis.
+  besi.types.v1_0_0.AngleBag theta = 3;
+
+  // thetaTrackingError contains the position tracking error samples of the theta axis.
+  besi.types.v1_0_0.AngleOffsetBag thetaTrackingError = 4;
+
+  // thetaCurrent contains the axis current samples of the theta axis.
+  besi.types.v1_0_0.CurrentBag thetaCurrent = 5;
+
+
+  // z contains the position samples of the z axis.
+  besi.types.v1_0_0.Position1dBag z = 6;
+
+  // zTrackingError contains the position tracking error samples of the z axis.
+  besi.types.v1_0_0.Offset1dBag zTrackingError = 7;
+
+  // zCurrent contains the axis current samples of the theta axis.
+  besi.types.v1_0_0.CurrentBag zCurrent = 8;
+
+
+  // w contains the position samples of the w axis.
+  besi.types.v1_0_0.Position1dBag w = 9;
+
+  // wTrackingError contains the position tracking error samples of the w axis.
+  besi.types.v1_0_0.Offset1dBag wTrackingError = 10;
+
+  // wCurrent contains the axis current samples of the w axis.
+  besi.types.v1_0_0.CurrentBag wCurrent = 11;
+
+
+  // v contains the position samples of the v axis.
+  besi.types.v1_0_0.Position1dBag v = 12;
+
+  // vTrackingError contains the position tracking error samples of the v axis.
+  besi.types.v1_0_0.Offset1dBag vTrackingError = 13;
+
+  // vCurrent contains the axis current samples of the v axis.
+  besi.types.v1_0_0.CurrentBag vCurrent = 14;
+
+
+  // x1 contains the position samples of the x1 axis.
+  besi.types.v1_0_0.Position1dBag x1 = 15;
+
+  // x1TrackingError contains the position tracking error samples of the x1 axis.
+  besi.types.v1_0_0.Offset1dBag x1TrackingError = 16;
+
+  // x1Current contains the axis current samples of the x1 axis.
+  besi.types.v1_0_0.CurrentBag x1Current = 17;
+
+
+  // x2 contains the position samples of the x2 axis.
+  besi.types.v1_0_0.Position1dBag x2 = 18;
+
+  // x2TrackingError contains the position tracking error samples of the x2 axis.
+  besi.types.v1_0_0.Offset1dBag x2TrackingError = 19;
+
+  // x2Current contains the axis current samples of the x2 axis.
+  besi.types.v1_0_0.CurrentBag x2Current = 20;
+
+
+  // y contains the position samples of the y axis.
+  besi.types.v1_0_0.Position1dBag y = 21;
+
+  // yTrackingError contains the position tracking error samples of the y axis.
+  besi.types.v1_0_0.Offset1dBag yTrackingError = 22;
+
+  // yCurrent contains the axis current samples of the y axis.
+  besi.types.v1_0_0.CurrentBag yCurrent = 23;
+
+
+  // bondForce contains the measured force samples of the bonding head.
+  besi.types.v1_0_0.ForceBag bondForce = 24;
+
+  // componentVacuumValve contains the state values of the component vacuum valve.
+  Valve componentVacuumValve = 25;
+
+  // componentNitrogenValve contains the state values of the component nitrogen valve.
+  Valve componentNitrogenValve = 26;
+
+  // componentVacuum contains the sample of the component vacuum sensor.
+  besi.types.v1_0_0.PercentageBag componentVacuum = 27;
+
+  // substrateVacuum contains the sample of the substrate vacuum sensor.
+  besi.types.v1_0_0.PercentageBag substrateVacuum = 28;
+
+  repeated uint32 numberOfTraceSyncEvents = 29;
+}

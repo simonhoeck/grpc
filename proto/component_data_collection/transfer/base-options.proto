@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+import "google/protobuf/descriptor.proto";
+
+package besi.opts.v1_0_0;
+
+// Defines the measurement units and prefixes used for the fields in messages.
+message Units {
+  // Enumerates the possible prefixes for measurement units, reflecting SI prefix standards.
+  enum Prefix {
+    base = 0;       // No prefix, implies base unit.
+    deci = 1;       // Represents the 'deci' prefix (10^-1).
+    centi = 2;      // Represents the 'centi' prefix (10^-2).
+    milli = 3;      // Represents the 'milli' prefix (10^-3).
+    micro = 4;      // Represents the 'micro' prefix (10^-6).
+    nano = 5;       // Represents the 'nano' prefix (10^-9).
+    reserved 6 to 13;  // Reserved prefixes for future use.
+    deca = 14;      // Represents the 'deca' prefix (10^1).
+    hecto = 15;     // Represents the 'hecto' prefix (10^2).
+    kilo = 16;      // Represents the 'kilo' prefix (10^3).
+    mega = 17;      // Represents the 'mega' prefix (10^6).
+    giga = 18;      // Represents the 'giga' prefix (10^9).
+    reserved 19 to 25; // Reserved prefixes for future use.
+  }
+
+  // Enumerates the possible types of units.
+  enum Type {
+    undefined = 0;            // Type is not defined.
+    meter = 1;                // Unit of length.
+    deg = 2;                  // Unit of angular measurement in degrees.
+    degreeCelsius = 3;        // Unit of temperature in degrees Celsius.
+    ampere = 4;               // Unit of electric current.
+    kg = 5;                   // Unit of mass.
+    volt = 6;                 // Unit of electric potential.
+    pascal = 7;               // Unit of pressure.
+    newton = 8;               // Unit of force.
+    hertz = 9;                // Unit of frequency.
+    reserved 10 to 30;        // Reserved unit types for future use.
+    meterPerSeconds = 31;     // Unit of velocity.
+    meterPerSecondsSquared = 32; // Unit of acceleration.
+    kgPerSeconds = 33;        // Unit of mass flow rate.
+    degreeCelsiusPerSeconds = 34; // Unit of temperature change rate.
+    degPerSeconds = 35;       // Unit of angular velocity.
+    degPerSecondsSquared = 36; // Unit of angular acceleration.
+  }
+
+  Type type = 2;    // Specifies the unit type.
+  Prefix prefix = 3; // Specifies the unit prefix.
+}
+
+// Specifies the range for numeric fields to enforce a minimum and maximum allowable value.
+message RangeOption {
+  double min = 1; // Minimum value allowed.
+  double max = 2; // Maximum value allowed.
+}
+
+// Custom field options to specify units, value ranges, and coordinate systems for fields.
+message FieldOptions {
+  Units unit = 1; // Unit and prefix specification for the field.
+  RangeOption range = 2; // Range restrictions for the field.
+  string coordinateSystem = 3; // Describes the coordinate system if applicable (e.g., "G0", "WG0").
+}
+
+// Custom message options to specify default units for all fields within the message.
+message MessageOptions {
+  Units unit = 1; // Default unit and prefix for the fields in the message.
+}
+
+/* @exclude see: Protobuf on Custom Options
+ * - https://protobuf.dev/programming-guides/proto3/#customoptions
+ * - https://protobuf.dev/programming-guides/proto2/#customoptions
+ * - https://libdccl.org/4.0/md_src_doc_markdown_page02_idl.html
+ * - https://github.com/GobySoft/dccl/blob/4.0/src/option_extensions.proto
+ * - https://en.wikipedia.org/wiki/International_System_of_Units
+ */
+
+// Protobuf extensions allow custom options to be defined for fields and messages.
+extend google.protobuf.FieldOptions {
+  FieldOptions field = 50000; // Assigns FieldOptions as an extension with an identifier.
+}
+
+extend google.protobuf.MessageOptions {
+  MessageOptions msg = 50000; // Assigns MessageOptions as an extension with an identifier.
+}

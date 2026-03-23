@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+import "machine-types.proto";
+import "automation-types.proto";
+import "production-types.proto";
+import "preproduction-types.proto";
+
+package besi.production.services.preproduction.v1_0_0;
+
+message ReportReply
+{
+}
+
+// Report provides the data collected during the preproduction step.
+// It contains data about the machine, components used for that production.
+message Report {
+  // id represents the unique id of the production.
+  // This id can be used to aggregate data between multiple services.
+  besi.production.types.v1_0_0.ProductionId id = 1;
+
+  // It represents the name of the machine which the production is held.
+  besi.machine.types.v1_0_0.MachineName machineName = 2;
+
+  // It represents the serial number of the machine which the production is held.
+  besi.machine.types.v1_0_0.SerialNumber serialNumber = 3;
+
+  //Side represents the side of the gantry which production will run.
+  besi.production.types.v1_0_0.ProductionSideSelection side = 4;
+
+  // It represents component types used for the production.
+  besi.production.types.preproduction.v1_0_0.ComponentInfoBag components = 5;
+
+  // It represents the unique identifier for the product.
+  besi.automation.types.v1_0_0.PPID ppid = 6;
+}
+
+// With PreproductionDataService, the equipment pushes the collected preproduction step data to the configured endpoint.
+service PreproductionDataService
+{
+  // PushReport is invoked after each production providing the report of the preproduction process step.
+  rpc PushReport (Report) returns (ReportReply);
+}
