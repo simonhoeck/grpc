@@ -42,7 +42,6 @@ def push(r: redis.Redis, service: str, message):
     data = MessageToDict(
         message,
         preserving_proto_field_name=True,
-        including_default_value_fields=False,
     )
     r.xadd(STREAM_KEY, {
         "service":     service,
