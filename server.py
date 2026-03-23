@@ -5,6 +5,9 @@ import time
 import logging
 from concurrent import futures
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import grpc
 import redis
 from google.protobuf.json_format import MessageToDict

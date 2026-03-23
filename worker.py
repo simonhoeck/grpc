@@ -4,6 +4,9 @@ import time
 import logging
 from datetime import datetime, timezone
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import redis
 from pymongo import MongoClient, ASCENDING
 from pymongo.errors import PyMongoError
