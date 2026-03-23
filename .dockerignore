@@ -1,8 +1,11 @@
 __pycache__/
 *.pyc
+*.pdf
+docs/
 tests/
-producer.py
-grpc-mongodb-setup.pdf
+generate_stubs.py
 CLAUDE.md
 README.md
+LICENSE
+.gitignore
 .claude/
