@@ -22,7 +22,7 @@ Producer (gRPC client) → gRPC Server (port 50051, 50 workers)
 - Binary data (type="binary") goes to GridFS, not the measurements collection
 - Worker uses consumer groups for horizontal scaling
 
-## Core Files (to be created)
+## Core Files
 
 | File | Purpose |
 |------|---------|
@@ -80,6 +80,15 @@ message DataPacket {
 message Ack { bool success = 1; }
 service DataService { rpc SendData(stream DataPacket) returns (Ack); }
 ```
+
+## Proto Best Practices
+
+- **Never re-use a tag number** (`= 1`, `= 2`, etc.) — it breaks deserialization of any serialized data in logs or old clients
+- **Reserve deleted fields**: when removing a field, add `reserved <number>;` (e.g. `reserved 3;`) so the number cannot be accidentally reused
+- **Reserve deleted names**: also add `reserved "fieldname";` to prevent name recycling
+- **Enums need a zero default**: always include `UNDEFINED = 0` as the first enum value to handle the unset case
+- **`repeated` fields**: use for zero-or-more list fields; maps to Python lists in generated stubs
+- **Nested messages**: messages can embed other message types for hierarchical data
 
 ## Scaling Thresholds
 

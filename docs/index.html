@@ -858,6 +858,7 @@
 
     <div class="nav-group-label">Reference</div>
     <a class="nav-link" href="#proto-schema"><span class="nav-link-icon">📄</span>Proto Schema</a>
+    <a class="nav-link" href="#proto-reference"><span class="nav-link-icon">📖</span>Proto Reference</a>
     <a class="nav-link" href="#mongodb"><span class="nav-link-icon">🗄️</span>MongoDB Collections</a>
     <a class="nav-link" href="#running"><span class="nav-link-icon">▶️</span>Running the System</a>
     <a class="nav-link" href="#usage"><span class="nav-link-icon">💡</span>Usage Examples</a>
@@ -1312,6 +1313,89 @@ service DataService {
           </tbody>
         </table>
       </div>
+    </section>
+
+    <!-- ── Proto Reference ──────────────────────────────────────── -->
+    <section id="proto-reference">
+      <div class="section-label">Protocol Buffers</div>
+      <h2>Protocol Buffers Reference</h2>
+      <p>Proto3 concepts used in <code>proto/data.proto</code> and best practices for safely evolving the schema.</p>
+
+      <h3>Syntax Declaration</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">syntax = "proto3";</code></pre>
+      </div>
+      <p>Specifies proto3. Proto3 uses zero-value defaults for all fields and is simpler to evolve than proto2.</p>
+
+      <h3>Message Declaration</h3>
+      <p><code>message</code> defines a structured data type. Each field has a name, scalar type, and a unique tag number. Messages can be nested for hierarchical data.</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">message DataPacket {
+  string type      = 1;
+  int64  timestamp = 2;
+  string device_id = 3;
+  bytes  payload   = 4;
+}</code></pre>
+      </div>
+
+      <h3>Enum Declaration</h3>
+      <p>Always include <code>UNDEFINED = 0</code> as the first enum value — proto3 requires a zero default and it safely handles unrecognised values from older senders.</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">enum DataType {
+  UNDEFINED = 0;
+  SENSOR    = 1;
+  EVENT     = 2;
+  BINARY    = 3;
+}</code></pre>
+      </div>
+
+      <h3>Repeated Fields</h3>
+      <p><code>repeated</code> allows zero or more instances of a field — it maps to a Python list in generated stubs.</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">message Batch {
+  repeated DataPacket packets = 1;
+}</code></pre>
+      </div>
+
+      <h3>Service &amp; Streaming</h3>
+      <p><code>stream</code> on the request type makes it a client-streaming RPC — the client sends multiple messages before the server returns a single <code>Ack</code>.</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">service DataService {
+  rpc SendData(stream DataPacket) returns (Ack);
+}</code></pre>
+      </div>
+
+      <h3>Tag Number Rules</h3>
+      <div class="callout callout-warn">
+        <strong>Never re-use a tag number.</strong> Serialised packets in Redis, logs, or old producers may still carry the old encoding — reusing a tag number causes silent data corruption or crashes in old clients.
+      </div>
+
+      <h3>Deleting Fields Safely</h3>
+      <p>When removing a field, reserve both its tag number and name so <code>protoc</code> rejects any future reuse:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">protobuf</span>
+        <pre><code class="language-protobuf">message DataPacket {
+  reserved 5;
+  reserved "old_field";
+  // remaining fields …
+}</code></pre>
+      </div>
+
+      <h3>Code Generation (Python)</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python -m grpc_tools.protoc \
+  -I./proto \
+  --python_out=. \
+  --grpc_python_out=. \
+  proto/data.proto</code></pre>
+      </div>
+      <p>Produces <code>data_pb2.py</code> (message classes) and <code>data_pb2_grpc.py</code> (stub + servicer). Run after every change to <code>data.proto</code>. The generated files are committed so that the producer machine only needs <code>grpcio</code>, not <code>grpcio-tools</code>.</p>
     </section>
 
     <!-- ── MongoDB Collections ──────────────────────────────────── -->

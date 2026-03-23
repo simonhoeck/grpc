@@ -260,6 +260,96 @@ service DataService {
 
 ---
 
+## Protocol Buffers Reference
+
+This section documents proto3 concepts used in `proto/data.proto` and best practices for evolving the schema safely.
+
+### Syntax Declaration
+
+```protobuf
+syntax = "proto3";
+```
+
+Specifies proto3. Proto3 drops required/optional field labels, uses zero values as defaults, and is simpler to evolve than proto2.
+
+### Message Declaration
+
+```protobuf
+message DataPacket {
+  string type      = 1;
+  int64  timestamp = 2;
+  string device_id = 3;
+  bytes  payload   = 4;
+}
+```
+
+`message` defines a structured data type. Fields have a name, scalar type, and a unique tag number. Messages can be nested inside other messages for hierarchical data.
+
+### Enum Declaration
+
+```protobuf
+enum DataType {
+  UNDEFINED = 0;
+  SENSOR    = 1;
+  EVENT     = 2;
+  BINARY    = 3;
+}
+```
+
+Always include `UNDEFINED = 0` as the first value — proto3 requires a zero default, and it safely handles unrecognised values from older senders.
+
+### Repeated Fields
+
+```protobuf
+message Batch {
+  repeated DataPacket packets = 1;
+}
+```
+
+`repeated` allows zero or more instances of a field. In generated Python code it appears as a list.
+
+### Service Declaration
+
+```protobuf
+service DataService {
+  rpc SendData(stream DataPacket) returns (Ack);
+}
+```
+
+`service` defines the gRPC API. `stream` on the request type makes it a client-streaming RPC — the client sends multiple messages before the server returns a single response.
+
+### Tag Number Rules
+
+> **Never re-use a tag number.** Even if a field is deleted, its number must never be assigned to a new field. Serialised packets in Redis, logs, or old producers may still carry the old encoding — reusing the number causes silent data corruption or crashes in old code.
+
+### Deleting Fields Safely
+
+When you remove a field, reserve both its tag number and name:
+
+```protobuf
+message DataPacket {
+  reserved 5;
+  reserved "old_field";
+  // remaining fields …
+}
+```
+
+This makes `protoc` reject any future `.proto` file that tries to reuse them.
+
+### Code Generation (Python)
+
+```bash
+python -m grpc_tools.protoc \
+  -I./proto \
+  --python_out=. \
+  --grpc_python_out=. \
+  proto/data.proto
+```
+
+Produces `data_pb2.py` (message classes) and `data_pb2_grpc.py` (stub + servicer). Run this after every change to `data.proto`. The generated files are committed to the repository so that the producer machine only needs `grpcio` installed, not `grpcio-tools`.
+
+---
+
 ## MongoDB Collections
 
 ### `measurements` (Time Series)
