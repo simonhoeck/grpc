@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Server-Installation — Schritt-für-Schritt</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --accent:       #3b82f6;
+      --accent-light: #eff6ff;
+      --bg:           #f8fafc;
+      --surface:      #ffffff;
+      --border:       #e2e8f0;
+      --text:         #0f172a;
+      --text-muted:   #64748b;
+      --code-bg:      #f1f5f9;
+      --sidebar-bg:   #1e293b;
+      --sidebar-text: #94a3b8;
+      --sidebar-width:260px;
+      --radius:       8px;
+      --shadow-sm:    0 1px 3px rgba(0,0,0,.08);
+      --shadow:       0 4px 6px rgba(0,0,0,.07);
+      --green:        #16a34a;
+      --green-light:  #f0fdf4;
+      --green-border: #bbf7d0;
+      --warn-bg:      #fff7ed;
+      --warn-border:  #fed7aa;
+      --warn-text:    #9a3412;
+      --note-bg:      #eff6ff;
+      --note-border:  #bfdbfe;
+      --note-text:    #1e40af;
+    }
+
+    html { scroll-behavior: smooth; font-size: 16px; }
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.7;
+      display: flex;
+      min-height: 100vh;
+    }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      position: fixed; top: 0; left: 0;
+      width: var(--sidebar-width);
+      height: 100vh;
+      background: var(--sidebar-bg);
+      display: flex; flex-direction: column;
+      overflow-y: auto; z-index: 100;
+    }
+    .sidebar-header {
+      padding: 24px 20px 20px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+    }
+    .sidebar-logo {
+      display: flex; align-items: center; gap: 10px;
+      text-decoration: none; margin-bottom: 4px;
+    }
+    .sidebar-logo-icon {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .sidebar-logo-text { font-size: 15px; font-weight: 700; color: #f1f5f9; }
+    .sidebar-subtitle { font-size: 11px; color: var(--sidebar-text); margin-top: 2px; }
+    .sidebar-nav { padding: 16px 12px; flex: 1; }
+    .nav-section-label {
+      font-size: 10px; font-weight: 600; color: #475569;
+      text-transform: uppercase; letter-spacing: .1em;
+      padding: 12px 8px 6px;
+    }
+    .nav-link {
+      display: flex; align-items: center; gap: 8px;
+      padding: 7px 10px; border-radius: 6px;
+      text-decoration: none; font-size: 13px;
+      color: var(--sidebar-text);
+      transition: all 120ms;
+      margin-bottom: 1px;
+    }
+    .nav-link:hover { background: rgba(255,255,255,.07); color: #f1f5f9; }
+    .nav-link.active { background: rgba(59,130,246,.2); color: #93c5fd; }
+    .nav-step-badge {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: rgba(255,255,255,.1); color: #94a3b8;
+      font-size: 10px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .nav-link.done .nav-step-badge { background: var(--green); color: #fff; }
+
+    /* ── Main ── */
+    .main {
+      margin-left: var(--sidebar-width);
+      flex: 1; padding: 48px 56px;
+      max-width: calc(var(--sidebar-width) + 860px);
+    }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 12px; padding: 40px 44px;
+      margin-bottom: 48px; position: relative; overflow: hidden;
+    }
+    .hero::after {
+      content: '';
+      position: absolute; top: -40px; right: -40px;
+      width: 200px; height: 200px;
+      background: radial-gradient(circle, rgba(59,130,246,.25) 0%, transparent 70%);
+    }
+    .hero-label {
+      font-size: 11px; font-weight: 600; color: #60a5fa;
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 10px;
+    }
+    .hero h1 { font-size: 28px; font-weight: 700; color: #f1f5f9; line-height: 1.3; margin-bottom: 12px; }
+    .hero p { color: #94a3b8; font-size: 15px; line-height: 1.7; max-width: 560px; }
+
+    .overview-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 14px; margin-top: 28px;
+    }
+    .overview-card {
+      background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1);
+      border-radius: 8px; padding: 16px;
+    }
+    .overview-card-icon { font-size: 22px; margin-bottom: 8px; }
+    .overview-card-title { font-size: 13px; font-weight: 600; color: #e2e8f0; margin-bottom: 4px; }
+    .overview-card-desc { font-size: 12px; color: #64748b; line-height: 1.5; }
+
+    /* ── Sections ── */
+    section { margin-bottom: 52px; scroll-margin-top: 32px; }
+    .section-label {
+      font-size: 11px; font-weight: 600; color: var(--accent);
+      text-transform: uppercase; letter-spacing: .1em; margin-bottom: 8px;
+    }
+    h2 {
+      font-size: 22px; font-weight: 700; color: var(--text);
+      letter-spacing: -.02em; margin-bottom: 20px;
+      padding-bottom: 12px; border-bottom: 2px solid var(--border);
+    }
+    h3 { font-size: 16px; font-weight: 600; color: var(--text); margin: 24px 0 10px; }
+    p { margin-bottom: 14px; color: #334155; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    ul, ol { padding-left: 22px; margin-bottom: 14px; }
+    li { margin-bottom: 5px; color: #334155; }
+    strong { font-weight: 600; color: var(--text); }
+    code:not(pre code) {
+      background: var(--code-bg); color: #be185d;
+      padding: 2px 6px; border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace; font-size: 13px; font-weight: 500;
+    }
+
+    /* ── Step cards ── */
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px 32px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+      position: relative;
+    }
+    .step-header {
+      display: flex; align-items: flex-start; gap: 16px; margin-bottom: 18px;
+    }
+    .step-number {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: var(--accent); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; flex-shrink: 0;
+    }
+    .step-title { font-size: 17px; font-weight: 700; color: var(--text); line-height: 1.3; }
+    .step-subtitle { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+    /* ── Code blocks ── */
+    .code-block-wrapper { position: relative; margin: 14px 0; }
+    .code-lang {
+      position: absolute; top: 10px; right: 12px;
+      font-size: 10px; font-weight: 600; color: #64748b;
+      text-transform: uppercase; letter-spacing: .07em;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    pre {
+      background: #0f172a; border-radius: var(--radius);
+      overflow: auto; margin: 0;
+      box-shadow: var(--shadow-sm);
+    }
+    pre code.hljs {
+      background: #0f172a; color: #e2e8f0;
+      padding: 18px 22px; padding-right: 60px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px; line-height: 1.65;
+    }
+    .hljs { background: #0f172a; color: #e2e8f0; }
+    .hljs-comment, .hljs-quote { color: #94a3b8; font-style: italic; }
+    .hljs-string { color: #86efac; }
+    .hljs-keyword, .hljs-built_in, .hljs-name { color: #93c5fd; }
+    .hljs-number, .hljs-literal { color: #fda4af; }
+    .hljs-attr, .hljs-attribute { color: #fde68a; }
+    .hljs-function, .hljs-title { color: #c4b5fd; }
+    .hljs-meta { color: #7dd3fc; }
+
+    /* inline terminal command */
+    .cmd {
+      background: #0f172a;
+      border: 1px solid rgba(59,130,246,.25);
+      border-radius: var(--radius);
+      padding: 14px 20px; padding-left: 40px;
+      position: relative; margin: 14px 0;
+    }
+    .cmd::before {
+      content: '$';
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px;
+      position: absolute; left: 18px; top: 14px;
+    }
+    .cmd code {
+      background: transparent; color: #7dd3fc; padding: 0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 14px; font-weight: 500;
+    }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: var(--radius); padding: 14px 18px;
+      margin: 16px 0; font-size: 14px; line-height: 1.6;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .callout-icon { flex-shrink: 0; font-size: 16px; margin-top: 1px; }
+    .callout-warn { background: var(--warn-bg); border: 1px solid var(--warn-border); color: var(--warn-text); }
+    .callout-note { background: var(--note-bg); border: 1px solid var(--note-border); color: var(--note-text); }
+    .callout-ok { background: var(--green-light); border: 1px solid var(--green-border); color: #15803d; }
+
+    /* ── Verify block ── */
+    .verify-block {
+      background: #f8fafc; border: 1px solid var(--border);
+      border-left: 3px solid var(--green);
+      border-radius: 0 var(--radius) var(--radius) 0;
+      padding: 14px 18px; margin-top: 20px;
+    }
+    .verify-title {
+      font-size: 12px; font-weight: 700; color: var(--green);
+      text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px;
+    }
+    .verify-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13px; color: #334155; margin-bottom: 6px;
+    }
+    .verify-item:last-child { margin-bottom: 0; }
+    .verify-check { color: var(--green); font-size: 14px; flex-shrink: 0; margin-top: 1px; }
+
+    /* ── Service table ── */
+    table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+    th {
+      background: #f1f5f9; text-align: left;
+      padding: 10px 14px; font-weight: 600; color: var(--text);
+      border-bottom: 2px solid var(--border);
+    }
+    td { padding: 10px 14px; border-bottom: 1px solid var(--border); color: #334155; }
+    tr:last-child td { border-bottom: none; }
+
+    /* ── Port pill ── */
+    .port {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px; font-weight: 600;
+      color: var(--accent); background: var(--accent-light);
+      padding: 2px 8px; border-radius: 5px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 900px) {
+      .main { padding: 32px 24px; }
+      .overview-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 700px) {
+      .sidebar { display: none; }
+      .main { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Sidebar ────────────────────────────────────────────────── -->
+<nav class="sidebar">
+  <div class="sidebar-header">
+    <a class="sidebar-logo" href="index.html">
+      <div class="sidebar-logo-icon">⚡</div>
+      <div>
+        <div class="sidebar-logo-text">gRPC Data Stack</div>
+        <div class="sidebar-subtitle">BESI Anlage → MongoDB</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="sidebar-nav">
+    <div class="nav-section-label">Installation</div>
+
+    <a class="nav-link" href="#voraussetzungen">
+      <span class="nav-step-badge">1</span>Voraussetzungen
+    </a>
+    <a class="nav-link" href="#repository">
+      <span class="nav-step-badge">2</span>Repository klonen
+    </a>
+    <a class="nav-link" href="#env">
+      <span class="nav-step-badge">3</span>.env konfigurieren
+    </a>
+    <a class="nav-link" href="#infrastruktur">
+      <span class="nav-step-badge">4</span>Infrastruktur starten
+    </a>
+    <a class="nav-link" href="#abhaengigkeiten">
+      <span class="nav-step-badge">5</span>Python-Abhängigkeiten
+    </a>
+    <a class="nav-link" href="#server">
+      <span class="nav-step-badge">6</span>gRPC-Server starten
+    </a>
+    <a class="nav-link" href="#worker">
+      <span class="nav-step-badge">7</span>Worker starten
+    </a>
+    <a class="nav-link" href="#firewall">
+      <span class="nav-step-badge">8</span>Firewall öffnen
+    </a>
+    <a class="nav-link" href="#anlage">
+      <span class="nav-step-badge">9</span>Anlage verbinden
+    </a>
+    <a class="nav-link" href="#verifizieren">
+      <span class="nav-step-badge">10</span>Alles verifizieren
+    </a>
+
+    <div class="nav-section-label" style="margin-top:16px;">Referenz</div>
+    <a class="nav-link" href="#services">7 gRPC-Services</a>
+    <a class="nav-link" href="#mongodb">MongoDB Collections</a>
+    <a class="nav-link" href="#umgebungsvariablen">Umgebungsvariablen</a>
+    <a class="nav-link" href="index.html">← Vollständige Doku</a>
+  </div>
+</nav>
+
+<!-- ── Main ───────────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-label">Setup-Anleitung</div>
+    <h1>Server-Installation auf einem neuen Rechner</h1>
+    <p>Diese Anleitung führt dich Schritt für Schritt durch die komplette Installation des gRPC-Datenerfassungssystems. Am Ende empfängt der Server alle 7 BESI-Services und speichert die Daten vollständig in MongoDB.</p>
+    <div class="overview-grid">
+      <div class="overview-card">
+        <div class="overview-card-icon">🐳</div>
+        <div class="overview-card-title">Docker Desktop</div>
+        <div class="overview-card-desc">Redis, MongoDB &amp; Grafana laufen als Container</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-card-icon">🐍</div>
+        <div class="overview-card-title">Python 3.10+</div>
+        <div class="overview-card-desc">Server und Worker direkt ausführen</div>
+      </div>
+      <div class="overview-card">
+        <div class="overview-card-icon">🏭</div>
+        <div class="overview-card-title">Port 50051</div>
+        <div class="overview-card-desc">gRPC-Eingang für alle BESI-Services</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Schritt 1 -->
+  <section id="voraussetzungen">
+    <div class="section-label">Schritt 1</div>
+    <h2>Voraussetzungen prüfen</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div>
+          <div class="step-title">Docker Desktop installieren</div>
+          <div class="step-subtitle">Für Redis, MongoDB und Grafana</div>
+        </div>
+      </div>
+      <p>Lade Docker Desktop von <strong>docker.com/products/docker-desktop</strong> herunter und installiere es. Nach der Installation einmal neu starten.</p>
+      <p>Prüfen ob Docker läuft:</p>
+      <div class="cmd"><code>docker --version</code></div>
+      <div class="verify-block">
+        <div class="verify-title">Erwartete Ausgabe</div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <code>Docker version 27.x.x, build ...</code>
+        </div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">1b</div>
+        <div>
+          <div class="step-title">Git installieren</div>
+          <div class="step-subtitle">Zum Klonen des Repositories</div>
+        </div>
+      </div>
+      <p>Lade Git von <strong>git-scm.com</strong> herunter und installiere es.</p>
+      <div class="cmd"><code>git --version</code></div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">1c</div>
+        <div>
+          <div class="step-title">Python 3.10+ installieren</div>
+          <div class="step-subtitle">Für Server und Worker</div>
+        </div>
+      </div>
+      <p>Lade Python von <strong>python.org</strong> herunter. Während der Installation <strong>„Add Python to PATH"</strong> aktivieren.</p>
+      <div class="cmd"><code>python --version</code></div>
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>Python 3.10, 3.11 oder 3.12 funktionieren alle. Python 3.9 oder älter wird nicht unterstützt.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 2 -->
+  <section id="repository">
+    <div class="section-label">Schritt 2</div>
+    <h2>Repository klonen</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div>
+          <div class="step-title">Quellcode herunterladen</div>
+          <div class="step-subtitle">Einmalig auf dem Server-PC ausführen</div>
+        </div>
+      </div>
+      <p>Öffne eine <strong>Eingabeaufforderung</strong> oder <strong>PowerShell</strong> und wähle einen geeigneten Ablageort (z.&nbsp;B. <code>C:\Apps</code>):</p>
+      <div class="cmd"><code>git clone https://github.com/simonhoeck/grpc.git</code></div>
+      <div class="cmd"><code>cd grpc</code></div>
+      <p>Das Verzeichnis enthält nach dem Klonen u.&nbsp;a.:</p>
+      <ul>
+        <li><code>server.py</code> — gRPC-Server, empfängt alle 7 BESI-Services</li>
+        <li><code>worker.py</code> — liest Redis, schreibt vollständig in MongoDB</li>
+        <li><code>generated/</code> — kompilierte Python-Stubs (44 Dateien)</li>
+        <li><code>docker-compose.yml</code> — Redis, MongoDB, Grafana</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Schritt 3 -->
+  <section id="env">
+    <div class="section-label">Schritt 3</div>
+    <h2>.env-Datei erstellen</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div>
+          <div class="step-title">Zugangsdaten konfigurieren</div>
+          <div class="step-subtitle">Im Projektordner eine Datei namens <code>.env</code> anlegen</div>
+        </div>
+      </div>
+      <p>Erstelle im geklonten Ordner (<code>grpc/</code>) eine Datei <code>.env</code> mit folgendem Inhalt:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">dotenv</span>
+        <pre><code class="language-bash"># .env — diese Datei NICHT ins Git committen
+MONGO_USER=admin
+MONGO_PASSWORD=SicheresPasswort123
+GRAFANA_USER=admin
+GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div><strong>Passwörter ändern!</strong> Die Standard-Passwörter (<code>changeme</code>) niemals in einem Netzwerk verwenden. Wähle starke, einzigartige Passwörter — vor allem wenn der Rechner von außen erreichbar ist.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 4 -->
+  <section id="infrastruktur">
+    <div class="section-label">Schritt 4</div>
+    <h2>Infrastruktur starten</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div>
+          <div class="step-title">Redis, MongoDB und Grafana starten</div>
+          <div class="step-subtitle">Alle drei Dienste als Docker-Container</div>
+        </div>
+      </div>
+      <p>Im Projektordner (<code>grpc/</code>) ausführen:</p>
+      <div class="cmd"><code>docker compose up -d redis mongodb mongo-express grafana</code></div>
+      <p>Docker lädt die Images automatisch herunter (nur beim ersten Mal). Danach Status prüfen:</p>
+      <div class="cmd"><code>docker compose ps</code></div>
+
+      <div class="verify-block">
+        <div class="verify-title">Alle Container müssen „healthy" oder „Up" zeigen</div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_redis</code> — Status: <strong>healthy</strong></span>
+        </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_mongodb</code> — Status: <strong>healthy</strong></span>
+        </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_mongo_express</code> — Status: <strong>Up</strong></span>
+        </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_grafana</code> — Status: <strong>Up</strong></span>
+        </div>
+      </div>
+
+      <h3>Verbindung einzeln testen</h3>
+      <p><strong>Redis:</strong></p>
+      <div class="cmd"><code>docker exec grpc_redis redis-cli ping</code></div>
+      <p>Antwort: <code>PONG</code></p>
+
+      <p><strong>MongoDB:</strong></p>
+      <div class="cmd"><code>docker exec grpc_mongodb mongosh -u admin -p SicheresPasswort123 --authenticationDatabase admin --eval "db.adminCommand('ping')"</code></div>
+      <p>Antwort: <code>{ ok: 1 }</code></p>
+
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>MongoDB braucht beim ersten Start ca. 30–60 Sekunden bis der Health-Check grün wird. Wenn <code>docker compose ps</code> noch „starting" zeigt, kurz warten.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 5 -->
+  <section id="abhaengigkeiten">
+    <div class="section-label">Schritt 5</div>
+    <h2>Python-Abhängigkeiten installieren</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">5</div>
+        <div>
+          <div class="step-title">Pakete installieren</div>
+          <div class="step-subtitle">Im Projektordner ausführen</div>
+        </div>
+      </div>
+      <div class="cmd"><code>pip install -r requirements.txt</code></div>
+      <p>Die <code>requirements.txt</code> enthält:</p>
+      <table>
+        <tr><th>Paket</th><th>Version</th><th>Zweck</th></tr>
+        <tr><td><code>grpcio</code></td><td>1.68.1</td><td>gRPC Runtime</td></tr>
+        <tr><td><code>grpcio-tools</code></td><td>1.68.1</td><td>Proto-Compiler (für generate_stubs.py)</td></tr>
+        <tr><td><code>redis</code></td><td>5.2.1</td><td>Redis-Client</td></tr>
+        <tr><td><code>pymongo</code></td><td>4.10.1</td><td>MongoDB-Client</td></tr>
+      </table>
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>Die kompilierten Stubs in <code>generated/</code> sind bereits im Repository enthalten — <code>generate_stubs.py</code> muss hier <strong>nicht</strong> ausgeführt werden. Nur bei Proto-Änderungen der Anlage erneut ausführen.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 6 -->
+  <section id="server">
+    <div class="section-label">Schritt 6</div>
+    <h2>gRPC-Server starten</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">6</div>
+        <div>
+          <div class="step-title">server.py in einem Terminal starten</div>
+          <div class="step-subtitle">Empfängt alle 7 BESI-Services auf Port 50051</div>
+        </div>
+      </div>
+      <p>Öffne ein <strong>neues Terminal-Fenster</strong> im Projektordner und starte den Server:</p>
+      <div class="cmd"><code>python server.py</code></div>
+
+      <div class="verify-block">
+        <div class="verify-title">Erwartete Log-Ausgabe</div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <code>[server] gRPC server on :50051 — 7 services registered, 50 workers</code>
+        </div>
+      </div>
+
+      <p style="margin-top:16px;">Wenn der Redis-Host nicht <code>localhost</code> ist, über Umgebungsvariable überschreiben:</p>
+      <div class="cmd"><code>REDIS_HOST=192.168.1.20 python server.py</code></div>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Das Terminal-Fenster <strong>offen lassen</strong>. Der Server läuft im Vordergrund. Für einen dauerhaften Betrieb siehe unten (<em>Autostart als Dienst</em>).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 7 -->
+  <section id="worker">
+    <div class="section-label">Schritt 7</div>
+    <h2>Worker starten</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">7</div>
+        <div>
+          <div class="step-title">worker.py in einem weiteren Terminal starten</div>
+          <div class="step-subtitle">Liest aus Redis und schreibt in MongoDB</div>
+        </div>
+      </div>
+      <p>Öffne ein <strong>zweites Terminal-Fenster</strong> im Projektordner:</p>
+      <div class="cmd"><code>python worker.py</code></div>
+
+      <div class="verify-block">
+        <div class="verify-title">Erwartete Log-Ausgabe</div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <code>[worker] MongoDB connected — db=grpcdata, collections=7</code>
+        </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <code>[worker] Worker 'worker-1' ready on stream 'data_stream'</code>
+        </div>
+      </div>
+
+      <p style="margin-top:16px;">Mit MongoDB-Zugangsdaten aus der <code>.env</code>:</p>
+      <div class="cmd"><code>MONGO_USER=admin MONGO_PASSWORD=SicheresPasswort123 python worker.py</code></div>
+
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>Mehrere Worker für höheren Durchsatz: Jede Instanz braucht einen eigenen <code>CONSUMER_NAME</code>.<br>
+        <code>CONSUMER_NAME=worker-2 python worker.py</code> in einem dritten Terminal.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 8 -->
+  <section id="firewall">
+    <div class="section-label">Schritt 8</div>
+    <h2>Windows-Firewall öffnen</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">8</div>
+        <div>
+          <div class="step-title">Port 50051 für eingehende Verbindungen freigeben</div>
+          <div class="step-subtitle">Einmalig als Administrator ausführen</div>
+        </div>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Diesen Befehl in einer <strong>Eingabeaufforderung mit Administratorrechten</strong> ausführen (Rechtsklick → „Als Administrator ausführen").</div>
+      </div>
+      <div class="cmd"><code>netsh advfirewall firewall add rule name="gRPC BESI" dir=in action=allow protocol=TCP localport=50051</code></div>
+
+      <div class="verify-block">
+        <div class="verify-title">Regel prüfen</div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <code>netsh advfirewall firewall show rule name="gRPC BESI"</code>
+        </div>
+      </div>
+
+      <p style="margin-top:16px;">Außerdem die IP-Adresse des Server-PCs im Netzwerk ermitteln (wird für Schritt 9 benötigt):</p>
+      <div class="cmd"><code>ipconfig</code></div>
+      <p>Der relevante Wert steht unter <strong>IPv4-Adresse</strong>, z.&nbsp;B. <code>192.168.1.50</code>.</p>
+    </div>
+  </section>
+
+  <!-- Schritt 9 -->
+  <section id="anlage">
+    <div class="section-label">Schritt 9</div>
+    <h2>Anlage verbinden</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">9</div>
+        <div>
+          <div class="step-title">Server-Adresse in der BESI-Anlage eintragen</div>
+          <div class="step-subtitle">Konfiguration auf der Anlage</div>
+        </div>
+      </div>
+      <p>In der Konfigurationsoberfläche der BESI-Anlage den Endpunkt des gRPC-Servers eintragen:</p>
+      <table>
+        <tr><th>Service</th><th>Adresse</th><th>Port</th></tr>
+        <tr><td>AlignmentDataService</td><td rowspan="7"><em>IP des Server-PCs</em><br>z.&nbsp;B. <code>192.168.1.50</code></td><td rowspan="7"><span class="port">50051</span></td></tr>
+        <tr><td>BondingDataService</td></tr>
+        <tr><td>CreationDataService</td></tr>
+        <tr><td>PostBondInspectionDataService</td></tr>
+        <tr><td>PickupDataService</td></tr>
+        <tr><td>TransferDataService</td></tr>
+        <tr><td>PreproductionDataService</td></tr>
+      </table>
+      <p>Alle 7 Services laufen auf dem <strong>selben Port 50051</strong>. Der gRPC-Server multiplext automatisch anhand des Service-Namens.</p>
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>Falls die Anlage eine Test-Adresse (<code>atrapc-grpc:50051</code>) konfiguriert hat, muss diese auf die IP des neuen Server-PCs umgestellt werden.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Schritt 10 -->
+  <section id="verifizieren">
+    <div class="section-label">Schritt 10</div>
+    <h2>Alles verifizieren</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number">10</div>
+        <div>
+          <div class="step-title">Datenfluss von der Anlage bis MongoDB prüfen</div>
+          <div class="step-subtitle">Sobald die Anlage verbunden ist und Berichte sendet</div>
+        </div>
+      </div>
+
+      <h3>Server-Log beobachten</h3>
+      <p>Im Terminal von <code>server.py</code> erscheinen Einträge wie:</p>
+      <div class="code-block-wrapper">
+        <pre><code class="language-bash">2025-03-23 10:15:32 [server] alignment  component=a1b2c3d4-...  production=prod-001
+2025-03-23 10:15:32 [server] bonding    component=a1b2c3d4-...  production=prod-001
+2025-03-23 10:15:33 [server] pbi        component=a1b2c3d4-...  production=prod-001</code></pre>
+      </div>
+
+      <h3>Redis-Stream prüfen</h3>
+      <div class="cmd"><code>docker exec grpc_redis redis-cli xlen data_stream</code></div>
+      <p>Gibt die Anzahl der empfangenen Nachrichten aus. Im Normalbetrieb sollte dieser Wert nahe 0 bleiben (Worker verarbeitet schnell).</p>
+      <div class="cmd"><code>docker exec grpc_redis redis-cli xlen data_stream_failed</code></div>
+      <p>Muss <strong>0</strong> sein — alles andere bedeutet Schreibfehler in MongoDB.</p>
+
+      <h3>MongoDB-Daten prüfen</h3>
+      <div class="cmd"><code>docker exec grpc_mongodb mongosh -u admin -p SicheresPasswort123 --authenticationDatabase admin grpcdata --eval "db.alignment_reports.countDocuments({})"</code></div>
+      <p>Gibt die Anzahl gespeicherter Alignment-Berichte aus. Wiederhole für die anderen Collections:</p>
+      <div class="code-block-wrapper">
+        <pre><code class="language-bash">db.alignment_reports.countDocuments({})
+db.bonding_reports.countDocuments({})
+db.creation_reports.countDocuments({})
+db.pbi_reports.countDocuments({})
+db.pickup_reports.countDocuments({})
+db.transfer_reports.countDocuments({})
+db.preproduction_reports.countDocuments({})</code></pre>
+      </div>
+
+      <h3>Daten im Browser ansehen</h3>
+      <p>Öffne <a href="http://localhost:8081" target="_blank">http://localhost:8081</a> (Mongo Express). Dort unter der Datenbank <code>grpcdata</code> alle 7 Collections mit den vollständigen Dokumenten durchsuchen.</p>
+
+      <div class="callout callout-ok">
+        <span class="callout-icon">✅</span>
+        <div>Wenn Dokumente in den Collections sichtbar sind und der Failed-Stream leer bleibt, ist die Installation vollständig erfolgreich.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Referenz: 7 Services -->
+  <section id="services">
+    <div class="section-label">Referenz</div>
+    <h2>Die 7 gRPC-Services</h2>
+    <p>Der Server implementiert jeden dieser Services mit einer unary <code>PushReport</code>-Methode. Die Anlage ruft den jeweiligen Service nach jedem Prozessschritt auf.</p>
+    <table>
+      <tr>
+        <th>Service</th>
+        <th>Proto-Package</th>
+        <th>MongoDB Collection</th>
+        <th>Beschreibung</th>
+      </tr>
+      <tr>
+        <td><code>AlignmentDataService</code></td>
+        <td><code>besi.component.services.alignment.v1_0_0</code></td>
+        <td><code>alignment_reports</code></td>
+        <td>Uplooking-Camera-Adjust, Bonding-Position-Adjust, Theta-Iterationen</td>
+      </tr>
+      <tr>
+        <td><code>BondingDataService</code></td>
+        <td><code>besi.component.services.bonding.v1_0_0</code></td>
+        <td><code>bonding_reports</code></td>
+        <td>Bond-Profil (Stage-Positionen) und optionale Traces aller Achsen</td>
+      </tr>
+      <tr>
+        <td><code>CreationDataService</code></td>
+        <td><code>besi.component.services.creation.v1_0_0</code></td>
+        <td><code>creation_reports</code></td>
+        <td>Komponenten-Erstellung: Tool-Name, Lot-Info, Quell-Material</td>
+      </tr>
+      <tr>
+        <td><code>PostBondInspectionDataService</code></td>
+        <td><code>besi.component.services.pbi.v1_0_0</code></td>
+        <td><code>pbi_reports</code></td>
+        <td>Post-Bond-Inspektion: XY-Offset und Theta-Offset nach dem Bonden</td>
+      </tr>
+      <tr>
+        <td><code>PickupDataService</code></td>
+        <td><code>besi.component.services.pickup.v1_0_0</code></td>
+        <td><code>pickup_reports</code></td>
+        <td>Pickup-Prozess: Flipper-Z/Theta, Eject-Needle, Vakuum-Traces</td>
+      </tr>
+      <tr>
+        <td><code>TransferDataService</code></td>
+        <td><code>besi.component.services.transfer.v1_0_0</code></td>
+        <td><code>transfer_reports</code></td>
+        <td>Transfer vom Flipper zum Bonding-Head inkl. Component-Center-Inspektion</td>
+      </tr>
+      <tr>
+        <td><code>PreproductionDataService</code></td>
+        <td><code>besi.production.services.preproduction.v1_0_0</code></td>
+        <td><code>preproduction_reports</code></td>
+        <td>Maschinen-Name, Seriennummer, PPID, verwendete Komponenten-Typen</td>
+      </tr>
+    </table>
+  </section>
+
+  <!-- Referenz: MongoDB -->
+  <section id="mongodb">
+    <div class="section-label">Referenz</div>
+    <h2>MongoDB Collections</h2>
+    <p>Jedes Dokument in allen Collections hat die gleiche Grundstruktur:</p>
+    <div class="code-block-wrapper">
+      <span class="code-lang">json</span>
+      <pre><code class="language-bash">{
+  "_id":           ObjectId("..."),
+  "received_at":   ISODate("2025-03-23T10:15:32Z"),   // UTC-Zeitstempel des Empfangs
+  "service":       "alignment",                        // Service-Name
+  "component_id":  "a1b2c3d4-e5f6-...",               // aus report.id.id
+  "production_id": "prod-2025-001",                    // aus report.productionId.id
+  "report": {                                          // vollständiges Proto-Objekt
+    "id": { "id": "a1b2c3d4-e5f6-..." },
+    "alignments": { "alignments": [ ... ] },
+    "productionId": { "id": "prod-2025-001" }
+  }
+}</code></pre>
+    </div>
+    <p>Indexes sind auf <code>received_at</code>, <code>component_id</code> und <code>production_id</code> angelegt — Abfragen über alle drei Felder sind performant.</p>
+    <p>Dokumente einer Komponente über alle Prozessschritte verknüpfen:</p>
+    <div class="code-block-wrapper">
+      <span class="code-lang">mongosh</span>
+      <pre><code class="language-bash">// Alle Reports zu einer component_id
+db.alignment_reports.find({ component_id: "a1b2c3d4-..." })
+db.bonding_reports.find({ component_id: "a1b2c3d4-..." })
+db.pbi_reports.find({ component_id: "a1b2c3d4-..." })
+
+// Alle Reports einer Produktion über alle Collections
+["alignment","bonding","creation","pbi","pickup","transfer"].forEach(s => {
+  print(s + ": " + db[s + "_reports"].countDocuments({ production_id: "prod-2025-001" }))
+})</code></pre>
+    </div>
+  </section>
+
+  <!-- Referenz: Env -->
+  <section id="umgebungsvariablen">
+    <div class="section-label">Referenz</div>
+    <h2>Umgebungsvariablen</h2>
+
+    <h3>server.py</h3>
+    <table>
+      <tr><th>Variable</th><th>Standard</th><th>Beschreibung</th></tr>
+      <tr><td><code>GRPC_PORT</code></td><td><code>50051</code></td><td>Port auf dem der Server lauscht</td></tr>
+      <tr><td><code>MAX_WORKERS</code></td><td><code>50</code></td><td>Thread-Pool-Größe</td></tr>
+      <tr><td><code>REDIS_HOST</code></td><td><code>localhost</code></td><td>Redis-Adresse</td></tr>
+      <tr><td><code>REDIS_PORT</code></td><td><code>6379</code></td><td>Redis-Port</td></tr>
+      <tr><td><code>STREAM_KEY</code></td><td><code>data_stream</code></td><td>Redis-Stream-Schlüssel</td></tr>
+    </table>
+
+    <h3>worker.py</h3>
+    <table>
+      <tr><th>Variable</th><th>Standard</th><th>Beschreibung</th></tr>
+      <tr><td><code>REDIS_HOST</code></td><td><code>localhost</code></td><td>Redis-Adresse</td></tr>
+      <tr><td><code>MONGO_HOST</code></td><td><code>localhost</code></td><td>MongoDB-Adresse</td></tr>
+      <tr><td><code>MONGO_USER</code></td><td><code>admin</code></td><td>MongoDB-Benutzername</td></tr>
+      <tr><td><code>MONGO_PASSWORD</code></td><td><code>changeme</code></td><td>MongoDB-Passwort</td></tr>
+      <tr><td><code>MONGO_DB</code></td><td><code>grpcdata</code></td><td>Datenbank-Name</td></tr>
+      <tr><td><code>CONSUMER_NAME</code></td><td><code>worker-1</code></td><td>Eindeutiger Name pro Worker-Instanz</td></tr>
+      <tr><td><code>BATCH_SIZE</code></td><td><code>10</code></td><td>Nachrichten pro Redis-Lesezyklus</td></tr>
+    </table>
+  </section>
+
+</main>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    hljs.highlightAll();
+
+    // Active nav link on scroll
+    const sections = document.querySelectorAll('section[id]');
+    const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(e => {
+        if (e.isIntersecting) {
+          navLinks.forEach(l => {
+            l.classList.toggle('active', l.getAttribute('href') === '#' + e.target.id);
+          });
+        }
+      });
+    }, { rootMargin: '-20% 0px -70% 0px' });
+    sections.forEach(s => observer.observe(s));
+  });
+</script>
+</body>
+</html>
