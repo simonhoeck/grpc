@@ -322,26 +322,24 @@
       <span class="nav-step-badge">3</span>.env konfigurieren
     </a>
     <a class="nav-link" href="#infrastruktur">
-      <span class="nav-step-badge">4</span>Infrastruktur starten
+      <span class="nav-step-badge">4</span>Alle Services starten
     </a>
     <a class="nav-link" href="#abhaengigkeiten">
       <span class="nav-step-badge">5</span>Python-Abhängigkeiten
     </a>
-    <a class="nav-link" href="#server">
-      <span class="nav-step-badge">6</span>gRPC-Server starten
-    </a>
-    <a class="nav-link" href="#worker">
-      <span class="nav-step-badge">7</span>Worker starten
-    </a>
     <a class="nav-link" href="#firewall">
-      <span class="nav-step-badge">8</span>Firewall öffnen
+      <span class="nav-step-badge">6</span>Firewall öffnen
     </a>
     <a class="nav-link" href="#anlage">
-      <span class="nav-step-badge">9</span>Anlage verbinden
+      <span class="nav-step-badge">7</span>Anlage verbinden
     </a>
     <a class="nav-link" href="#verifizieren">
-      <span class="nav-step-badge">10</span>Alles verifizieren
+      <span class="nav-step-badge">8</span>Alles verifizieren
     </a>
+
+    <div class="nav-section-label" style="margin-top:16px;">Betrieb</div>
+    <a class="nav-link" href="#autostart">Autostart-Verhalten</a>
+    <a class="nav-link" href="#backup">Datensicherung &amp; Wiederherstellung</a>
 
     <div class="nav-section-label" style="margin-top:16px;">Referenz</div>
     <a class="nav-link" href="#services">7 gRPC-Services</a>
@@ -368,7 +366,7 @@
       <div class="overview-card">
         <div class="overview-card-icon">🐍</div>
         <div class="overview-card-title">Python 3.10+</div>
-        <div class="overview-card-desc">Server und Worker direkt ausführen</div>
+        <div class="overview-card-desc">Für generate_stubs.py (nur bei Proto-Änderungen)</div>
       </div>
       <div class="overview-card">
         <div class="overview-card-icon">🏭</div>
@@ -490,19 +488,19 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
   <!-- Schritt 4 -->
   <section id="infrastruktur">
     <div class="section-label">Schritt 4</div>
-    <h2>Infrastruktur starten</h2>
+    <h2>Alle Services starten</h2>
 
     <div class="step-card">
       <div class="step-header">
         <div class="step-number">4</div>
         <div>
-          <div class="step-title">Redis, MongoDB und Grafana starten</div>
-          <div class="step-subtitle">Alle drei Dienste als Docker-Container</div>
+          <div class="step-title">Alle 6 Services als Docker-Container starten</div>
+          <div class="step-subtitle">Redis, MongoDB, Grafana, Mongo Express, gRPC-Server und Worker</div>
         </div>
       </div>
       <p>Im Projektordner (<code>grpc/</code>) ausführen:</p>
-      <div class="cmd"><code>docker compose up -d redis mongodb mongo-express grafana</code></div>
-      <p>Docker lädt die Images automatisch herunter (nur beim ersten Mal). Danach Status prüfen:</p>
+      <div class="cmd"><code>docker compose up -d</code></div>
+      <p>Dieser Befehl startet <strong>alle 6 Container</strong> — darunter auch den gRPC-Server und den Worker. Kein manuelles <code>python server.py</code> oder <code>python worker.py</code> notwendig. Docker lädt die Images automatisch herunter (nur beim ersten Mal). Danach Status prüfen:</p>
       <div class="cmd"><code>docker compose ps</code></div>
 
       <div class="verify-block">
@@ -523,6 +521,14 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
           <span class="verify-check">✓</span>
           <span><code>grpc_grafana</code> — Status: <strong>Up</strong></span>
         </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_server</code> — Status: <strong>Up</strong></span>
+        </div>
+        <div class="verify-item">
+          <span class="verify-check">✓</span>
+          <span><code>grpc_worker</code> — Status: <strong>Up</strong></span>
+        </div>
       </div>
 
       <h3>Verbindung einzeln testen</h3>
@@ -538,6 +544,46 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
         <span class="callout-icon">ℹ️</span>
         <div>MongoDB braucht beim ersten Start ca. 30–60 Sekunden bis der Health-Check grün wird. Wenn <code>docker compose ps</code> noch „starting" zeigt, kurz warten.</div>
       </div>
+    </div>
+  </section>
+
+  <!-- Autostart-Verhalten -->
+  <section id="autostart">
+    <div class="section-label">Betrieb</div>
+    <h2>Autostart-Verhalten</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#16a34a;">&#10003;</div>
+        <div>
+          <div class="step-title">Automatischer Neustart nach Crash oder PC-Neustart</div>
+          <div class="step-subtitle">Konfiguriert über <code>restart: unless-stopped</code> in docker-compose.yml</div>
+        </div>
+      </div>
+      <p>Alle 6 Docker-Services sind so konfiguriert, dass sie sich automatisch neu starten — ohne dass jemand eingreifen muss.</p>
+
+      <table>
+        <tr><th>Ereignis</th><th>Verhalten</th></tr>
+        <tr><td>Container-Absturz oder Fehler</td><td>Automatischer Neustart</td></tr>
+        <tr><td>PC-Neustart / Docker-Daemon-Neustart</td><td>Alle Services starten automatisch</td></tr>
+        <tr><td><code>docker compose down</code></td><td>Services gestoppt — kein Autostart bis zum nächsten <code>up -d</code></td></tr>
+        <tr><td><code>docker compose stop worker</code></td><td>Nur dieser Service gestoppt, kein Autostart für ihn</td></tr>
+      </table>
+
+      <div class="callout callout-note">
+        <span class="callout-icon">ℹ️</span>
+        <div>Es wird kein externer Dienst-Manager (Windows Task-Planer, systemd o.&nbsp;Ä.) benötigt. Docker selbst übernimmt den Autostart.</div>
+      </div>
+
+      <h3>Autostart deaktivieren</h3>
+      <p>Falls alle Services dauerhaft gestoppt werden sollen (z.&nbsp;B. für Wartung):</p>
+      <div class="cmd"><code>docker compose down</code></div>
+      <p>Nur den Worker stoppen (Server und Infrastruktur laufen weiter):</p>
+      <div class="cmd"><code>docker compose stop worker</code></div>
+
+      <h3>Autostart wieder aktivieren</h3>
+      <p>Nach einem manuellen Stopp alle Services wieder starten und den Autostart reaktivieren:</p>
+      <div class="cmd"><code>docker compose up -d</code></div>
     </div>
   </section>
 
@@ -571,86 +617,13 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
   </section>
 
   <!-- Schritt 6 -->
-  <section id="server">
-    <div class="section-label">Schritt 6</div>
-    <h2>gRPC-Server starten</h2>
-
-    <div class="step-card">
-      <div class="step-header">
-        <div class="step-number">6</div>
-        <div>
-          <div class="step-title">server.py in einem Terminal starten</div>
-          <div class="step-subtitle">Empfängt alle 7 BESI-Services auf Port 50051</div>
-        </div>
-      </div>
-      <p>Öffne ein <strong>neues Terminal-Fenster</strong> im Projektordner und starte den Server:</p>
-      <div class="cmd"><code>python server.py</code></div>
-
-      <div class="verify-block">
-        <div class="verify-title">Erwartete Log-Ausgabe</div>
-        <div class="verify-item">
-          <span class="verify-check">✓</span>
-          <code>[server] gRPC server on :50051 — 7 services registered, 50 workers</code>
-        </div>
-      </div>
-
-      <p style="margin-top:16px;">Wenn der Redis-Host nicht <code>localhost</code> ist, über Umgebungsvariable überschreiben:</p>
-      <div class="cmd"><code>REDIS_HOST=192.168.1.20 python server.py</code></div>
-
-      <div class="callout callout-warn">
-        <span class="callout-icon">⚠️</span>
-        <div>Das Terminal-Fenster <strong>offen lassen</strong>. Der Server läuft im Vordergrund. Für einen dauerhaften Betrieb siehe unten (<em>Autostart als Dienst</em>).</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Schritt 7 -->
-  <section id="worker">
-    <div class="section-label">Schritt 7</div>
-    <h2>Worker starten</h2>
-
-    <div class="step-card">
-      <div class="step-header">
-        <div class="step-number">7</div>
-        <div>
-          <div class="step-title">worker.py in einem weiteren Terminal starten</div>
-          <div class="step-subtitle">Liest aus Redis und schreibt in MongoDB</div>
-        </div>
-      </div>
-      <p>Öffne ein <strong>zweites Terminal-Fenster</strong> im Projektordner:</p>
-      <div class="cmd"><code>python worker.py</code></div>
-
-      <div class="verify-block">
-        <div class="verify-title">Erwartete Log-Ausgabe</div>
-        <div class="verify-item">
-          <span class="verify-check">✓</span>
-          <code>[worker] MongoDB connected — db=grpcdata, collections=7</code>
-        </div>
-        <div class="verify-item">
-          <span class="verify-check">✓</span>
-          <code>[worker] Worker 'worker-1' ready on stream 'data_stream'</code>
-        </div>
-      </div>
-
-      <p style="margin-top:16px;">Mit MongoDB-Zugangsdaten aus der <code>.env</code>:</p>
-      <div class="cmd"><code>MONGO_USER=admin MONGO_PASSWORD=SicheresPasswort123 python worker.py</code></div>
-
-      <div class="callout callout-note">
-        <span class="callout-icon">ℹ️</span>
-        <div>Mehrere Worker für höheren Durchsatz: Jede Instanz braucht einen eigenen <code>CONSUMER_NAME</code>.<br>
-        <code>CONSUMER_NAME=worker-2 python worker.py</code> in einem dritten Terminal.</div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Schritt 8 -->
   <section id="firewall">
-    <div class="section-label">Schritt 8</div>
+    <div class="section-label">Schritt 6</div>
     <h2>Windows-Firewall öffnen</h2>
 
     <div class="step-card">
       <div class="step-header">
-        <div class="step-number">8</div>
+        <div class="step-number">6</div>
         <div>
           <div class="step-title">Port 50051 für eingehende Verbindungen freigeben</div>
           <div class="step-subtitle">Einmalig als Administrator ausführen</div>
@@ -676,14 +649,14 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
     </div>
   </section>
 
-  <!-- Schritt 9 -->
+  <!-- Schritt 7 -->
   <section id="anlage">
-    <div class="section-label">Schritt 9</div>
+    <div class="section-label">Schritt 7</div>
     <h2>Anlage verbinden</h2>
 
     <div class="step-card">
       <div class="step-header">
-        <div class="step-number">9</div>
+        <div class="step-number">7</div>
         <div>
           <div class="step-title">Server-Adresse in der BESI-Anlage eintragen</div>
           <div class="step-subtitle">Konfiguration auf der Anlage</div>
@@ -708,14 +681,14 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
     </div>
   </section>
 
-  <!-- Schritt 10 -->
+  <!-- Schritt 8 -->
   <section id="verifizieren">
-    <div class="section-label">Schritt 10</div>
+    <div class="section-label">Schritt 8</div>
     <h2>Alles verifizieren</h2>
 
     <div class="step-card">
       <div class="step-header">
-        <div class="step-number">10</div>
+        <div class="step-number">8</div>
         <div>
           <div class="step-title">Datenfluss von der Anlage bis MongoDB prüfen</div>
           <div class="step-subtitle">Sobald die Anlage verbunden ist und Berichte sendet</div>
@@ -723,7 +696,8 @@ GRAFANA_PASSWORD=SicheresPasswort123</code></pre>
       </div>
 
       <h3>Server-Log beobachten</h3>
-      <p>Im Terminal von <code>server.py</code> erscheinen Einträge wie:</p>
+      <p>In den Docker-Logs des Containers erscheinen Einträge wie:</p>
+      <div class="cmd"><code>docker compose logs -f grpc_server</code></div>
       <div class="code-block-wrapper">
         <pre><code class="language-bash">2025-03-23 10:15:32 [server] alignment  component=a1b2c3d4-...  production=prod-001
 2025-03-23 10:15:32 [server] bonding    component=a1b2c3d4-...  production=prod-001
@@ -878,6 +852,125 @@ db.pbi_reports.find({ component_id: "a1b2c3d4-..." })
       <tr><td><code>CONSUMER_NAME</code></td><td><code>worker-1</code></td><td>Eindeutiger Name pro Worker-Instanz</td></tr>
       <tr><td><code>BATCH_SIZE</code></td><td><code>10</code></td><td>Nachrichten pro Redis-Lesezyklus</td></tr>
     </table>
+  </section>
+
+  <!-- Datensicherung & Wiederherstellung -->
+  <section id="backup">
+    <div class="section-label">Betrieb</div>
+    <h2>Datensicherung &amp; Wiederherstellung</h2>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#7c3aed;">&#128190;</div>
+        <div>
+          <div class="step-title">Welche Daten müssen gesichert werden?</div>
+          <div class="step-subtitle">Drei Docker-Volumes enthalten persistente Daten</div>
+        </div>
+      </div>
+
+      <table>
+        <tr><th>Volume</th><th>Inhalt</th><th>Priorität</th></tr>
+        <tr><td><code>mongo_data</code></td><td>Alle 7 Collections mit Maschinendaten</td><td><strong>Hoch</strong> — täglich sichern</td></tr>
+        <tr><td><code>grafana_data</code></td><td>Grafana-Dashboards und Konfiguration</td><td>Mittel — nach Dashboard-Änderungen</td></tr>
+        <tr><td><code>redis_data</code></td><td>Redis AOF/RDB-Persistenz (Puffer)</td><td>Niedrig — optional, da Daten bereits in MongoDB</td></tr>
+      </table>
+
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Backup-Verzeichnisse <strong>nicht</strong> im Projektordner ablegen — <code>docker compose down -v</code> löscht alle Volumes dauerhaft. Backups auf einem separaten Laufwerk oder Netzlaufwerk speichern.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#7c3aed;">&#8593;</div>
+        <div>
+          <div class="step-title">MongoDB sichern</div>
+          <div class="step-subtitle">Empfohlen täglich als geplante Aufgabe</div>
+        </div>
+      </div>
+      <p>Datenbankdump im Container erstellen:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker exec grpc_mongodb mongodump \
+  -u admin -p SicheresPasswort123 \
+  --authenticationDatabase admin \
+  --db grpcdata \
+  --out /tmp/backup</code></pre>
+      </div>
+      <p>Dump auf den Host kopieren (Datum wird automatisch eingefügt):</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker cp grpc_mongodb:/tmp/backup ./backup/mongodb_$(date +%Y%m%d_%H%M%S)</code></pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#7c3aed;">&#8593;</div>
+        <div>
+          <div class="step-title">Grafana sichern</div>
+          <div class="step-subtitle">Nach Änderungen an Dashboards ausführen</div>
+        </div>
+      </div>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker run --rm \
+  -v grpc_grafana_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar czf /backup/grafana_$(date +%Y%m%d_%H%M%S).tar.gz -C /data .</code></pre>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#0284c7;">&#8595;</div>
+        <div>
+          <div class="step-title">MongoDB wiederherstellen</div>
+          <div class="step-subtitle">Backup-Ordner-Name anpassen (z.&nbsp;B. mongodb_20250323_103000)</div>
+        </div>
+      </div>
+      <p>Backup in den Container kopieren:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker cp ./backup/mongodb_DATUM grpc_mongodb:/tmp/restore</code></pre>
+      </div>
+      <p>Datenbank wiederherstellen:</p>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker exec grpc_mongodb mongorestore \
+  -u admin -p SicheresPasswort123 \
+  --authenticationDatabase admin \
+  --db grpcdata \
+  /tmp/restore/grpcdata</code></pre>
+      </div>
+      <div class="callout callout-warn">
+        <span class="callout-icon">⚠️</span>
+        <div>Bei einem <code>mongorestore</code> werden vorhandene Dokumente mit gleicher <code>_id</code> überschrieben. Wenn eine vollständige Rücksetzung gewünscht ist, Collection vorher leeren oder <code>--drop</code> anhängen.</div>
+      </div>
+    </div>
+
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-number" style="background:#0284c7;">&#8595;</div>
+        <div>
+          <div class="step-title">Grafana wiederherstellen</div>
+          <div class="step-subtitle">Dateiname anpassen (z.&nbsp;B. grafana_20250323_103000.tar.gz)</div>
+        </div>
+      </div>
+      <div class="code-block-wrapper">
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">docker compose stop grafana
+
+docker run --rm \
+  -v grpc_grafana_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar xzf /backup/grafana_DATUM.tar.gz -C /data
+
+docker compose up -d grafana</code></pre>
+      </div>
+    </div>
+
   </section>
 
 </main>

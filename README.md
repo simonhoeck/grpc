@@ -1,6 +1,6 @@
-# gRPC → MongoDB Data Acquisition System
+# BESI gRPC → MongoDB Data Collection System
 
-A high-throughput data acquisition pipeline for IoT and industrial devices. Devices stream typed data packets over gRPC, a Redis Streams buffer absorbs bursts without loss, and a persistent worker writes everything into MongoDB — sensor and event data into a Time Series collection, binary payloads into GridFS. Grafana sits on top for dashboards.
+A data collection pipeline for BESI industrial machines. Machines send production and component reports over gRPC, a Redis Streams buffer absorbs bursts without loss, and a persistent worker writes each report into its own MongoDB collection. Grafana sits on top for dashboards.
 
 ---
 
@@ -15,21 +15,20 @@ A high-throughput data acquisition pipeline for IoT and industrial devices. Devi
 - [Installation](#installation)
 - [Configuration](#configuration)
 - [Running the System](#running-the-system)
-- [Usage Examples](#usage-examples)
-- [Testing](#testing)
+- [Autostart Behavior](#autostart-behavior)
+- [Backup & Recovery](#backup--recovery)
 - [Scaling](#scaling)
 - [Monitoring](#monitoring)
 - [Publishing the Docker Images](#publishing-the-docker-images)
-- [Connecting a Real Machine (Anlage)](#connecting-a-real-machine-anlage)
 
 ---
 
 ## Architecture
 
 ```
-Producer (gRPC client)
+BESI Machine (gRPC client)
     │
-    │  stream DataPacket
+    │  PushReport (unary)  ×7 services
     ▼
 gRPC Server  (port 50051, 50 workers)
     │
@@ -40,8 +39,13 @@ Redis Streams  (consumer groups, no-loss buffer)
     │  XREADGROUP
     ▼
 Worker / Consumer
-    ├─── sensor / event  ──►  MongoDB  measurements  (Time Series)
-    └─── binary          ──►  MongoDB  GridFS
+    ├─── alignment   ──►  MongoDB  alignment_reports
+    ├─── bonding     ──►  MongoDB  bonding_reports
+    ├─── creation    ──►  MongoDB  creation_reports
+    ├─── pbi         ──►  MongoDB  pbi_reports
+    ├─── pickup      ──►  MongoDB  pickup_reports
+    ├─── transfer    ──►  MongoDB  transfer_reports
+    └─── preprod.    ──►  MongoDB  preproduction_reports
                                    │
                               Grafana dashboards
 ```
@@ -53,14 +57,14 @@ Worker / Consumer
 | Redis Streams as buffer | Decouples gRPC ingestion rate from MongoDB write speed; survives spikes without packet loss |
 | Consumer groups | Multiple worker instances can process the same stream in parallel for horizontal scaling |
 | Failed-packet stream | Messages that cannot be written go to `data_stream_failed` instead of being discarded — nothing is silently lost |
-| Time Series collection | MongoDB native time series gives automatic bucketing and efficient range queries on `(timestamp, device_id, type)` |
-| GridFS for binary | Binary payloads (firmware images, waveforms, etc.) are too large for a document field; GridFS handles chunking transparently |
+| One collection per service | Each BESI service maps to its own collection, keeping report schemas separate and queries simple |
+| Unary RPC | Each machine call is a single `PushReport` request/response — straightforward and stateless |
 
 ---
 
 ## Infrastructure / Docker
 
-The three backing services — Redis, MongoDB, and Grafana — are managed by `docker-compose.yml` in the project root. Everything below assumes Docker Desktop is installed and running.
+All six services — Redis, MongoDB, Grafana, Mongo Express, gRPC server, and worker — are managed by `docker-compose.yml` in the project root. Everything below assumes Docker Desktop is installed and running.
 
 ### Prerequisites
 
@@ -95,16 +99,18 @@ The variables map to the following container settings:
 docker compose up -d
 ```
 
-This starts four containers in detached mode:
+This starts all six containers in detached mode:
 
 | Container | Image | Purpose |
 |---|---|---|
 | `grpc_redis` | `redis:7-alpine` | Stream buffer (AOF persistence enabled) |
-| `grpc_mongodb` | `mongo:7` | Time Series + GridFS storage |
+| `grpc_mongodb` | `mongo:7` | Report collection storage |
 | `grpc_mongo_express` | `mongo-express:latest` | Browser UI for MongoDB (port 8081) |
 | `grpc_grafana` | `grafana/grafana:latest` | Dashboards (MongoDB datasource plugin pre-installed) |
+| `grpc_server` | built from `Dockerfile` | gRPC server — receives all 7 BESI services |
+| `grpc_worker` | built from `Dockerfile` | Redis consumer — writes reports to MongoDB |
 
-Mongo Express and Grafana both wait for MongoDB's health check to pass before they start.
+Mongo Express and Grafana both wait for MongoDB's health check to pass before they start. The server and worker containers wait for Redis and MongoDB respectively.
 
 ### Verify all services are healthy
 
@@ -114,7 +120,7 @@ Start by checking the overall status of all containers:
 docker compose ps
 ```
 
-All three containers should show `healthy` (Redis and MongoDB have health checks configured) or at minimum `Up`. Expected port bindings:
+All containers should show `healthy` (Redis and MongoDB have health checks configured) or at minimum `Up`. Expected port bindings:
 
 | Service | Container | Host port | Default URL |
 |---|---|---|---|
@@ -122,6 +128,7 @@ All three containers should show `healthy` (Redis and MongoDB have health checks
 | MongoDB | `grpc_mongodb` | 27017 | `mongodb://localhost:27017` |
 | Mongo Express | `grpc_mongo_express` | 8081 | `http://localhost:8081` |
 | Grafana | `grpc_grafana` | 3000 | `http://localhost:3000` |
+| gRPC Server | `grpc_server` | 50051 | `grpc://localhost:50051` |
 
 If any container looks wrong, check its recent output:
 
@@ -193,8 +200,7 @@ Open `http://localhost:8081` in your browser — no login is required (basic aut
 **Navigating to your data:**
 
 1. In the left-hand database list, click **grpcdata**.
-2. Click **measurements** to browse sensor and event documents stored in the Time Series collection.
-3. The **fs.files** and **fs.chunks** collections contain the GridFS binary payloads. Use `fs.files` to find a file by metadata (device ID, timestamp) and `fs.chunks` for the raw binary chunks.
+2. Click any of the 7 report collections to browse documents: `alignment_reports`, `bonding_reports`, `creation_reports`, `pbi_reports`, `pickup_reports`, `transfer_reports`, `preproduction_reports`.
 
 No installation is needed beyond Docker — Mongo Express runs entirely as a container and connects to `grpc_mongodb` over the internal Docker network.
 
@@ -210,161 +216,75 @@ docker compose down
 docker compose down -v
 ```
 
-> **Warning:** `docker compose down -v` permanently deletes the `redis_data`, `mongo_data`, and `grafana_data` volumes. All measurements, binary files, and Grafana dashboard configurations will be lost.
+> **Warning:** `docker compose down -v` permanently deletes the `redis_data`, `mongo_data`, and `grafana_data` volumes. All report data and Grafana dashboard configurations will be lost.
 
 ---
 
 ## Data Flow
 
-1. A device (the **producer**) opens a client-streaming gRPC call to `DataService.SendData`.
-2. It sends one or more `DataPacket` messages — each with a type, timestamp, device ID, and payload.
-3. The **gRPC server** pushes each packet onto the `data_stream` Redis Stream and returns an `Ack`.
-4. The **worker** reads from `data_stream` via a consumer group:
-   - `type = "sensor"` or `type = "event"` → inserted into the `measurements` Time Series collection.
-   - `type = "binary"` → stored in GridFS; a reference document is added to `measurements`.
-   - On write failure the message is moved to `data_stream_failed` and retried on the next cycle.
+1. A BESI machine calls one of the 7 gRPC services with a unary `PushReport(Report)` request.
+2. The **gRPC server** serialises the report and pushes it onto the `data_stream` Redis Stream, then returns a `ReportReply`.
+3. The **worker** reads from `data_stream` via a consumer group and routes each message to the correct MongoDB collection based on the service name (e.g. `alignment` → `alignment_reports`).
+4. On write failure the message is moved to `data_stream_failed` and retried on the next cycle — nothing is silently lost.
 5. Grafana queries MongoDB directly for dashboards and alerting.
 
 ---
 
 ## Proto Schema
 
-File: `proto/data.proto`
+The system implements 7 separate BESI gRPC services. Proto files live in two directories:
+
+- `proto/component_data_collection/` — alignment, bonding, creation, pbi, pickup, transfer
+- `proto/production_data_collection/` — preproduction
+
+All services share the same unary RPC pattern:
 
 ```protobuf
-syntax = "proto3";
-
-message DataPacket {
-  string type      = 1;  // "sensor" | "event" | "binary"
-  int64  timestamp = 2;  // Unix epoch, milliseconds
-  string device_id = 3;
-  bytes  payload   = 4;  // JSON-encoded for sensor/event; raw bytes for binary
-}
-
-message Ack {
-  bool success = 1;
-}
-
-service DataService {
-  rpc SendData(stream DataPacket) returns (Ack);
+service <Name>DataService {
+  rpc PushReport(Report) returns (ReportReply);
 }
 ```
 
-**Payload conventions:**
-
-| Type | Payload format | Example |
+| Service | Proto Package | MongoDB Collection |
 |---|---|---|
-| `sensor` | JSON object | `{"temperature": 23.4, "humidity": 61}` |
-| `event` | JSON object | `{"code": "E_OVERHEAT", "severity": "warn"}` |
-| `binary` | Raw bytes | firmware image, ADC waveform, camera frame |
+| `AlignmentDataService` | `besi.component.services.alignment.v1_0_0` | `alignment_reports` |
+| `BondingDataService` | `besi.component.services.bonding.v1_0_0` | `bonding_reports` |
+| `CreationDataService` | `besi.component.services.creation.v1_0_0` | `creation_reports` |
+| `PostBondInspectionDataService` | `besi.component.services.pbi.v1_0_0` | `pbi_reports` |
+| `PickupDataService` | `besi.component.services.pickup.v1_0_0` | `pickup_reports` |
+| `TransferDataService` | `besi.component.services.transfer.v1_0_0` | `transfer_reports` |
+| `PreproductionDataService` | `besi.production.services.preproduction.v1_0_0` | `preproduction_reports` |
 
----
-
-## Protocol Buffers Reference
-
-This section documents proto3 concepts used in `proto/data.proto` and best practices for evolving the schema safely.
-
-### Syntax Declaration
-
-```protobuf
-syntax = "proto3";
-```
-
-Specifies proto3. Proto3 drops required/optional field labels, uses zero values as defaults, and is simpler to evolve than proto2.
-
-### Message Declaration
-
-```protobuf
-message DataPacket {
-  string type      = 1;
-  int64  timestamp = 2;
-  string device_id = 3;
-  bytes  payload   = 4;
-}
-```
-
-`message` defines a structured data type. Fields have a name, scalar type, and a unique tag number. Messages can be nested inside other messages for hierarchical data.
-
-### Enum Declaration
-
-```protobuf
-enum DataType {
-  UNDEFINED = 0;
-  SENSOR    = 1;
-  EVENT     = 2;
-  BINARY    = 3;
-}
-```
-
-Always include `UNDEFINED = 0` as the first value — proto3 requires a zero default, and it safely handles unrecognised values from older senders.
-
-### Repeated Fields
-
-```protobuf
-message Batch {
-  repeated DataPacket packets = 1;
-}
-```
-
-`repeated` allows zero or more instances of a field. In generated Python code it appears as a list.
-
-### Service Declaration
-
-```protobuf
-service DataService {
-  rpc SendData(stream DataPacket) returns (Ack);
-}
-```
-
-`service` defines the gRPC API. `stream` on the request type makes it a client-streaming RPC — the client sends multiple messages before the server returns a single response.
-
-### Tag Number Rules
-
-> **Never re-use a tag number.** Even if a field is deleted, its number must never be assigned to a new field. Serialised packets in Redis, logs, or old producers may still carry the old encoding — reusing the number causes silent data corruption or crashes in old code.
-
-### Deleting Fields Safely
-
-When you remove a field, reserve both its tag number and name:
-
-```protobuf
-message DataPacket {
-  reserved 5;
-  reserved "old_field";
-  // remaining fields …
-}
-```
-
-This makes `protoc` reject any future `.proto` file that tries to reuse them.
-
-### Code Generation (Python)
-
-```bash
-python -m grpc_tools.protoc \
-  -I./proto \
-  --python_out=. \
-  --grpc_python_out=. \
-  proto/data.proto
-```
-
-Produces `data_pb2.py` (message classes) and `data_pb2_grpc.py` (stub + servicer). Run this after every change to `data.proto`. The generated files are committed to the repository so that the producer machine only needs `grpcio` installed, not `grpcio-tools`.
+Generated Python stubs are stored in `generated/` and are produced by running `python generate_stubs.py`.
 
 ---
 
 ## MongoDB Collections
 
-### `measurements` (Time Series)
+Each report lands in its own collection in the `grpcdata` database. All documents share the same structure:
 
-- Granularity: `seconds`
-- Time field: `timestamp`
-- Meta fields: `device_id`, `type`
-- Compound index on `(timestamp, device_id, type)`
-- Stores all `sensor` and `event` packets, plus reference documents for binary uploads
+```json
+{
+  "_id":           ObjectId("..."),
+  "received_at":   ISODate("2025-03-23T10:15:32Z"),
+  "service":       "alignment",
+  "component_id":  "a1b2c3d4-...",        // present in all except preproduction
+  "production_id": "prod-2025-001",
+  "report":        { ... }               // full proto object as JSON
+}
+```
 
-### GridFS (`fs.files` / `fs.chunks`)
+Indexes on: `received_at`, `production_id`, `component_id`
 
-- Stores raw binary payloads
-- Each file's metadata includes `device_id`, `timestamp`, and `type = "binary"`
-- The `measurements` document for a binary packet contains the GridFS `file_id` for cross-referencing
+| Collection | Content |
+|---|---|
+| `alignment_reports` | Uplooking-camera adjustment, bonding-position adjustment, theta iterations |
+| `bonding_reports` | Bond profile (stage positions) and optional axis traces |
+| `creation_reports` | Component creation: tool name, lot info, source material |
+| `pbi_reports` | Post-bond inspection: XY offset and theta offset |
+| `pickup_reports` | Pickup process: flipper Z/theta, eject needle, vacuum traces |
+| `transfer_reports` | Transfer from flipper to bonding head, component-center inspection |
+| `preproduction_reports` | Machine name, serial number, PPID, component types used |
 
 ---
 
@@ -372,12 +292,12 @@ Produces `data_pb2.py` (message classes) and `data_pb2_grpc.py` (stub + servicer
 
 - Docker and Docker Compose
 - Python 3.10+
-- `grpcio`, `grpcio-tools`, `pymongo`, `redis` Python packages
+- `grpcio`, `grpcio-tools`, `pymongo`, `redis`, `python-dotenv` Python packages
 
 Install Python dependencies:
 
 ```bash
-pip install grpcio grpcio-tools pymongo redis
+pip install -r requirements.txt
 ```
 
 ---
@@ -391,215 +311,171 @@ git clone <repo-url>
 cd gRPC
 ```
 
-2. Start infrastructure (Redis, MongoDB, Grafana):
+2. Start all services (Redis, MongoDB, Grafana, gRPC server, worker):
 
 ```bash
 docker compose up -d
 ```
 
-3. Generate Python gRPC stubs from the proto definition:
+3. If proto files have changed, regenerate the Python stubs:
 
 ```bash
-python -m grpc_tools.protoc \
-  -I./proto \
-  --python_out=. \
-  --grpc_python_out=. \
-  proto/data.proto
+python generate_stubs.py
 ```
 
-This produces `data_pb2.py` and `data_pb2_grpc.py` in the project root.
+The generated stubs in `generated/` are already committed to the repository, so this step is only needed when proto files are modified.
 
 ---
 
 ## Configuration
 
-All runtime settings are controlled via environment variables or a `.env` file.
+All runtime settings are controlled via a `.env` file in the project root. Docker Compose and the server/worker load it automatically via `python-dotenv`.
+
+**server.py**
 
 | Variable | Default | Description |
 |---|---|---|
 | `GRPC_PORT` | `50051` | Port the gRPC server listens on |
-| `GRPC_MAX_WORKERS` | `50` | Thread pool size for the gRPC server |
-| `REDIS_URL` | `redis://localhost:6379` | Redis connection string |
-| `REDIS_STREAM_KEY` | `data_stream` | Primary Redis Stream key |
-| `REDIS_FAILED_KEY` | `data_stream_failed` | Stream for undeliverable messages |
-| `REDIS_CONSUMER_GROUP` | `workers` | Consumer group name |
-| `MONGO_URL` | `mongodb://localhost:27017` | MongoDB connection string |
-| `MONGO_DB` | `daq` | Database name |
+| `MAX_WORKERS` | `50` | Thread pool size for the gRPC server |
+| `REDIS_HOST` | `localhost` | Redis hostname |
+| `REDIS_PORT` | `6379` | Redis port |
+| `STREAM_KEY` | `data_stream` | Redis Stream key |
+
+**worker.py**
+
+| Variable | Default | Description |
+|---|---|---|
+| `REDIS_HOST` | `localhost` | Redis hostname |
+| `MONGO_HOST` | `localhost` | MongoDB hostname |
+| `MONGO_USER` | `admin` | MongoDB username |
+| `MONGO_PASSWORD` | `changeme` | MongoDB password |
+| `MONGO_DB` | `grpcdata` | Database name |
+| `CONSUMER_NAME` | `worker-1` | Unique name per worker instance |
+| `BATCH_SIZE` | `10` | Messages read per Redis cycle |
 
 ---
 
 ## Running the System
 
-### 1. Start infrastructure
+### Start everything
 
 ```bash
 docker compose up -d
 ```
 
-### 2. Start the gRPC server
+`docker compose up -d` starts all six containers — Redis, MongoDB, Grafana, Mongo Express, gRPC server, and worker — in detached mode. No separate `python server.py` or `python worker.py` commands are needed; both run inside Docker.
+
+### Verify
 
 ```bash
-python server.py
-```
-
-The server listens on `0.0.0.0:50051` and pushes incoming packets to Redis.
-
-### 3. Start the worker
-
-```bash
-python worker.py
-```
-
-The worker joins the `workers` consumer group on `data_stream` and writes to MongoDB. Run multiple instances for parallel processing.
-
----
-
-## Usage Examples
-
-### Sending sensor data from a Python client
-
-```python
-import grpc
-import data_pb2
-import data_pb2_grpc
-import time
-import json
-
-channel = grpc.insecure_channel("localhost:50051")
-stub = data_pb2_grpc.DataServiceStub(channel)
-
-def generate_packets():
-    for i in range(10):
-        payload = json.dumps({"temperature": 20.0 + i, "humidity": 50 + i}).encode()
-        yield data_pb2.DataPacket(
-            type="sensor",
-            timestamp=int(time.time() * 1000),
-            device_id="device-001",
-            payload=payload,
-        )
-
-ack = stub.SendData(generate_packets())
-print("Success:", ack.success)
-```
-
-### Sending an event
-
-```python
-payload = json.dumps({"code": "E_STARTUP", "severity": "info"}).encode()
-
-ack = stub.SendData(iter([
-    data_pb2.DataPacket(
-        type="event",
-        timestamp=int(time.time() * 1000),
-        device_id="device-001",
-        payload=payload,
-    )
-]))
-```
-
-### Sending binary data
-
-```python
-with open("firmware_v2.bin", "rb") as f:
-    raw = f.read()
-
-ack = stub.SendData(iter([
-    data_pb2.DataPacket(
-        type="binary",
-        timestamp=int(time.time() * 1000),
-        device_id="device-001",
-        payload=raw,
-    )
-]))
+docker compose ps
+docker compose logs --tail=20
 ```
 
 ---
 
-## Testing
+## Autostart Behavior
 
-The `tests/` directory contains four test scripts covering different scenarios:
+All six containers in `docker-compose.yml` are configured with `restart: unless-stopped`. This means:
 
-| Script | What it sends | Passing result |
+| Event | Behavior |
+|---|---|
+| Container crash or OOM kill | Container restarts automatically |
+| Docker daemon restart (e.g. after a PC reboot) | All containers start automatically |
+| `docker compose down` | Containers stop and will **not** restart automatically |
+| `docker compose stop <service>` | That container stops and will **not** restart automatically |
+
+Once stopped with `docker compose down`, autostart is re-enabled by running `docker compose up -d` again.
+
+```bash
+# Stop all services (disables autostart until next `up -d`)
+docker compose down
+
+# Stop only the worker (disables autostart for worker only)
+docker compose stop worker
+
+# Re-enable autostart for all services
+docker compose up -d
+```
+
+> **Note:** `restart: unless-stopped` means Docker itself manages restarts — no external service manager (systemd, Task Scheduler, etc.) is required on the host.
+
+---
+
+## Backup & Recovery
+
+### Volumes with persistent data
+
+| Volume | Contents | Backup priority |
 |---|---|---|
-| `tests/test_single.py` | 100 sensor packets from one client | `[test_single] success=True  (100 packets sent)` |
-| `tests/test_multi.py` | 100 sensor packets each from 20 concurrent clients (2 000 total) | `[test_multi] 20/20 clients OK — 2000 packets sent, 0 failed` |
-| `tests/test_mixed.py` | 10 sensor + 5 event + 3 binary packets in a single stream | `[test_mixed] success=True  (10 sensor + 5 event + 3 binary)` |
-| `tests/test_load.py` | 1 000 sensor packets each from 50 concurrent clients (50 000 total) | `[test_load] 50/50 clients OK` plus throughput summary |
+| `mongo_data` | All 7 MongoDB collections (machine reports) | High — back up daily |
+| `grafana_data` | Grafana dashboards and configuration | Medium — back up after changes |
+| `redis_data` | Redis AOF/RDB persistence | Low — Redis is a buffer; data is already in MongoDB |
 
-### Prerequisites
-
-Both `server.py` and `worker.py` must be running before you execute any test. Start them in separate terminals:
+### MongoDB backup
 
 ```bash
-# Terminal 1
-python server.py
+# Dump the grpcdata database inside the container
+docker exec grpc_mongodb mongodump \
+  -u admin -p changeme \
+  --authenticationDatabase admin \
+  --db grpcdata \
+  --out /tmp/backup
 
-# Terminal 2
-python worker.py
+# Copy the dump to a local backup directory
+docker cp grpc_mongodb:/tmp/backup ./backup/mongodb_$(date +%Y%m%d_%H%M%S)
 ```
 
-Docker infrastructure (Redis + MongoDB) must also be up:
+> **Note:** Replace `admin` / `changeme` with your actual credentials from `.env`.
+
+### Grafana backup
 
 ```bash
-docker compose up -d
+docker run --rm \
+  -v grpc_grafana_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar czf /backup/grafana_$(date +%Y%m%d_%H%M%S).tar.gz -C /data .
 ```
 
-### Run the tests
+### Redis backup (optional)
 
 ```bash
-python tests/test_single.py
-python tests/test_multi.py
-python tests/test_mixed.py
-python tests/test_load.py
+docker exec grpc_redis redis-cli BGSAVE
+docker cp grpc_redis:/data/dump.rdb ./backup/redis_$(date +%Y%m%d_%H%M%S).rdb
 ```
 
-You can override the server address with the `GRPC_SERVER` environment variable (default: `localhost:50051`):
+### MongoDB restore
 
 ```bash
-GRPC_SERVER=192.168.1.10:50051 python tests/test_single.py
+# Copy the backup into the container
+docker cp ./backup/mongodb_DATUM grpc_mongodb:/tmp/restore
+
+# Restore the grpcdata database
+docker exec grpc_mongodb mongorestore \
+  -u admin -p changeme \
+  --authenticationDatabase admin \
+  --db grpcdata \
+  /tmp/restore/grpcdata
 ```
 
-### Expected output
+### Grafana restore
 
-**test_single.py**
+```bash
+docker compose stop grafana
 
-```
-[test_single] success=True  (100 packets sent)
-```
+docker run --rm \
+  -v grpc_grafana_data:/data \
+  -v $(pwd)/backup:/backup \
+  alpine tar xzf /backup/grafana_DATUM.tar.gz -C /data
 
-**test_multi.py**
-
-```
-[test_multi] 20/20 clients OK — 2000 packets sent, 0 failed
-```
-
-If any individual client call returns `success=False`, that client's result is printed before the summary:
-
-```
-[test_multi] client 7 FAILED
-[test_multi] 19/20 clients OK — 2000 packets sent, 1 failed
+docker compose up -d grafana
 ```
 
-**test_mixed.py**
+### Recommended backup strategy
 
-```
-[test_mixed] success=True  (10 sensor + 5 event + 3 binary)
-```
-
-**test_load.py**
-
-`test_load.py` prints a progress line at the start and a throughput summary at the end:
-
-```
-[test_load] Starting 50 clients × 1000 packets = 50000 total ...
-[test_load] 50/50 clients OK
-[test_load] Total packets : 50000
-[test_load] Total time    : 8.3s
-[test_load] Throughput    : 6024 packets/s
-[test_load] Avg per client: 7.41s
-```
-
-Exact timing figures vary by hardware; the important indicators are `50/50 clients OK` and `0 failed`.
+- Run the MongoDB backup daily and store the output on a separate drive or network share.
+- Run a Grafana backup after any dashboard changes.
+- Store backups outside the project directory so that `docker compose down -v` cannot delete them.
 
 ---
 
@@ -612,17 +488,16 @@ The system is designed to scale horizontally at two independent layers.
 | Connected clients | Recommended approach |
 |---|---|
 | 2 – 10 | Default configuration |
-| 10 – 50 | Increase `GRPC_MAX_WORKERS` (e.g. to 100) |
-| 50 – 200 | Run multiple `worker.py` instances — they automatically share load via Redis consumer groups |
+| 10 – 50 | Increase `MAX_WORKERS` (e.g. to 100) |
+| 50 – 200 | Run multiple worker containers — they automatically share load via Redis consumer groups |
 | 200+ | Run multiple gRPC server instances behind a load balancer (e.g. Nginx or Envoy), plus multiple workers |
 
 ### Running multiple workers
 
-Each worker instance needs a unique consumer name within the group:
+Each worker instance needs a unique consumer name within the group. Set `CONSUMER_NAME` in `docker-compose.yml` or via environment variable:
 
 ```bash
-WORKER_NAME=worker-1 python worker.py
-WORKER_NAME=worker-2 python worker.py
+CONSUMER_NAME=worker-2 python worker.py
 ```
 
 Redis consumer groups guarantee that each message is delivered to exactly one worker, preventing duplicate writes.
@@ -651,14 +526,10 @@ redis-cli xpending data_stream workers - + 10
 ### MongoDB document count
 
 ```bash
-# Total measurements stored
-mongosh --eval 'db.measurements.countDocuments({})'
-
-# Sensor data only
-mongosh --eval 'db.measurements.countDocuments({type: "sensor"})'
-
-# Binary file count (GridFS)
-mongosh --eval 'db.fs.files.countDocuments({})'
+# Count documents in each collection
+docker exec grpc_mongodb mongosh -u admin -p changeme \
+  --authenticationDatabase admin grpcdata \
+  --eval "['alignment','bonding','creation','pbi','pickup','transfer','preproduction'].forEach(s => print(s + ': ' + db[s + '_reports'].countDocuments({})))"
 ```
 
 ---
@@ -765,120 +636,29 @@ docker compose pull && docker compose up -d
 
 `docker compose pull` fetches the latest image versions from the registry. `docker compose up -d` then starts all services in detached mode.
 
-### Using the published images
+### Using published images on another machine
 
-`docker-compose.yml` in this repository already references the published ghcr.io images, so no local build is required. The relevant service definitions look like this:
+`docker-compose.yml` in this repository uses `build: .` for the server and worker — they are built locally from the `Dockerfile`. To deploy on a machine without the source code, push images to a registry first (Option A or B above), then update `docker-compose.yml` on the target machine to replace `build: .` with the registry image reference:
 
 ```yaml
-  server:
-    image: ghcr.io/simonhoeck/grpc-server:latest
-    command: python server.py
-    container_name: grpc_server
-    restart: unless-stopped
-    ports:
-      - "50051:50051"
-    environment:
-      REDIS_HOST: redis
-      GRPC_PORT: "50051"
-      MAX_WORKERS: "50"
-    depends_on:
-      redis:
-        condition: service_healthy
+# Before (build from source)
+server:
+  build: .
 
-  worker:
-    image: ghcr.io/simonhoeck/grpc-worker:latest
-    command: python worker.py
-    container_name: grpc_worker
-    restart: unless-stopped
-    environment:
-      REDIS_HOST: redis
-      MONGO_HOST: mongodb
-      MONGO_USER: ${MONGO_USER:-admin}
-      MONGO_PASSWORD: ${MONGO_PASSWORD:-changeme}
-      CONSUMER_NAME: worker-1
-    depends_on:
-      redis:
-        condition: service_healthy
-      mongodb:
-        condition: service_healthy
+# After (pull from registry)
+server:
+  image: ghcr.io/simonhoeck/grpc-server:latest
 ```
 
-On any machine that has Docker installed, copy over `docker-compose.yml` and a `.env` file (see [Configure credentials](#configure-credentials)), then run:
+Apply the same change for the worker service. Then copy `docker-compose.yml` and a `.env` file to the target machine and run:
 
 ```bash
 docker compose pull
 docker compose up -d
 ```
 
-`docker compose pull` downloads the server and worker images from ghcr.io. `docker compose up -d` starts the full stack in detached mode. No source code or Python environment is needed.
+No source code or Python environment is needed on the target machine.
 
----
-
-## Connecting a Real Machine (Anlage)
-
-This section describes how to run `producer.py` directly on an industrial machine or embedded PC so it streams live measurements to the server.
-
-### Files needed on the machine
-
-Copy only these three files to the machine — nothing else is required:
-
-- `data_pb2.py`
-- `data_pb2_grpc.py`
-- `producer.py`
-
-The generated stub files (`data_pb2.py`, `data_pb2_grpc.py`) are already committed to the repository. There is no need to install `grpcio-tools` or run `protoc` on the machine.
-
-### Install on the machine
-
-```bash
-pip install grpcio
-```
-
-Only `grpcio` (the runtime) is needed. `grpcio-tools` is a development-only dependency for regenerating stubs and is not required on the machine.
-
-### Configuration via environment variables
-
-| Variable | Default | Description |
-|---|---|---|
-| `GRPC_SERVER` | `localhost:50051` | IP address and port of the server PC (e.g. `192.168.1.10:50051`) |
-| `DEVICE_ID` | `anlage-001` | Unique name that identifies this machine in the database |
-| `INTERVAL` | `1.0` | Measurement interval in seconds |
-
-Set variables before starting the producer, for example:
-
-```bash
-GRPC_SERVER=192.168.1.10:50051 DEVICE_ID=presse-01 INTERVAL=0.5 python producer.py
-```
-
-On Windows, set them as system environment variables or use a `.env` loader.
-
-### What to customize
-
-Open `producer.py` and fill in the two marked functions:
-
-**`read_sensors()`** — replace the placeholder values with real hardware reads. Supported protocols include Modbus, OPC-UA, Serial/RS-232, GPIO, and any Python-accessible interface. The function must return a `dict` of measurement values; the keys become the field names stored in MongoDB.
-
-**`read_events()`** — optional. Return a list of event dicts (alarms, status changes, error codes) whenever something noteworthy occurs, or `None` if there is nothing to report. Each dict is stored as a separate `event` packet in the `measurements` collection.
-
-### How to run
-
-```bash
-python producer.py
-```
-
-The producer connects to the gRPC server and streams packets continuously. Log output is written to stdout.
-
-### Windows Firewall
-
-The server PC needs port 50051 open for inbound TCP connections. Run the following command once on the server PC with administrator privileges:
-
-```
-netsh advfirewall firewall add rule name="gRPC" dir=in action=allow protocol=TCP localport=50051
-```
-
-### Auto-reconnect
-
-If the connection to the server is lost (network interruption, server restart), `producer.py` automatically waits 5 seconds and then reconnects. No manual intervention is required.
 
 ---
 

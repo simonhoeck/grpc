@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>gRPC Data Stack — Documentation</title>
+  <title>BESI gRPC Data Stack — Documentation</title>
 
   <!-- Google Fonts: Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -858,17 +858,13 @@
 
     <div class="nav-group-label">Reference</div>
     <a class="nav-link" href="#proto-schema"><span class="nav-link-icon">📄</span>Proto Schema</a>
-    <a class="nav-link" href="#proto-reference"><span class="nav-link-icon">📖</span>Proto Reference</a>
     <a class="nav-link" href="#mongodb"><span class="nav-link-icon">🗄️</span>MongoDB Collections</a>
     <a class="nav-link" href="#running"><span class="nav-link-icon">▶️</span>Running the System</a>
-    <a class="nav-link" href="#usage"><span class="nav-link-icon">💡</span>Usage Examples</a>
 
     <div class="nav-group-label">Operations</div>
-    <a class="nav-link" href="#testing"><span class="nav-link-icon">🧪</span>Testing</a>
     <a class="nav-link" href="#scaling"><span class="nav-link-icon">📈</span>Scaling</a>
     <a class="nav-link" href="#monitoring"><span class="nav-link-icon">📊</span>Monitoring</a>
     <a class="nav-link" href="#publishing"><span class="nav-link-icon">📦</span>Publishing Images</a>
-    <a class="nav-link" href="#real-machine"><span class="nav-link-icon">🏭</span>Real Machine</a>
   </nav>
 
   <div class="sidebar-footer">
@@ -883,10 +879,10 @@
     <!-- ── Hero ────────────────────────────────────────────────── -->
     <section id="hero">
       <div class="hero">
-        <div class="hero-badge">&#9889; IoT &amp; Industrial Data Acquisition</div>
-        <h1>gRPC <span class="arrow">&#8594;</span> MongoDB<br>Data Acquisition</h1>
+        <div class="hero-badge">&#9889; BESI Industrial Data Collection</div>
+        <h1>BESI gRPC <span class="arrow">&#8594;</span> MongoDB<br>Data Collection System</h1>
         <p class="hero-desc">
-          A high-throughput pipeline for IoT and industrial devices. Devices stream typed data packets over gRPC, a Redis Streams buffer absorbs bursts without loss, and a persistent worker writes everything into MongoDB — sensor and event data into a Time Series collection, binary payloads into GridFS.
+          A data collection pipeline for BESI industrial machines. Machines send production and component reports over 7 separate gRPC services, a Redis Streams buffer absorbs bursts without loss, and a persistent worker writes each report into its own MongoDB collection.
         </p>
         <div class="hero-actions">
           <a class="btn btn-outline" href="https://github.com/simonhoeck/grpc" target="_blank" rel="noopener">
@@ -908,9 +904,9 @@
 
       <p>The stack has three independent tiers: a gRPC ingestion layer, a Redis Streams buffer, and a MongoDB persistence layer. Each tier can be scaled independently without affecting the others.</p>
 
-      <pre class="ascii-diagram"><code>Producer (gRPC client)
+      <pre class="ascii-diagram"><code>BESI Machine (gRPC client)
     │
-    │  stream DataPacket
+    │  PushReport (unary)  ×7 services
     ▼
 gRPC Server  (port 50051, 50 workers)
     │
@@ -921,8 +917,13 @@ Redis Streams  (consumer groups, no-loss buffer)
     │  XREADGROUP
     ▼
 Worker / Consumer
-    ├─── sensor / event  ──►  MongoDB  measurements  (Time Series)
-    └─── binary          ──►  MongoDB  GridFS
+    ├─── alignment   ──►  MongoDB  alignment_reports
+    ├─── bonding     ──►  MongoDB  bonding_reports
+    ├─── creation    ──►  MongoDB  creation_reports
+    ├─── pbi         ──►  MongoDB  pbi_reports
+    ├─── pickup      ──►  MongoDB  pickup_reports
+    ├─── transfer    ──►  MongoDB  transfer_reports
+    └─── preprod.    ──►  MongoDB  preproduction_reports
                                    │
                               Grafana dashboards</code></pre>
 
@@ -942,17 +943,17 @@ Worker / Consumer
         <div class="card">
           <span class="card-icon">&#128683;</span>
           <div class="card-title">Failed-Packet Stream</div>
-          <div class="card-body">Messages that cannot be written go to <code>data_stream_failed</code> instead of being discarded. Nothing is silently lost — every packet is accounted for.</div>
+          <div class="card-body">Messages that cannot be written go to <code>data_stream_failed</code> instead of being discarded. Nothing is silently lost — every report is accounted for.</div>
         </div>
         <div class="card">
-          <span class="card-icon">&#128336;</span>
-          <div class="card-title">Time Series Collection</div>
-          <div class="card-body">MongoDB native time series gives automatic bucketing and efficient range queries on <code>(timestamp, device_id, type)</code> with no extra indexing effort.</div>
+          <span class="card-icon">&#128196;</span>
+          <div class="card-title">One Collection per Service</div>
+          <div class="card-body">Each BESI service maps to its own MongoDB collection. Report schemas stay separate, and queries against a single process step are fast and simple.</div>
         </div>
         <div class="card">
-          <span class="card-icon">&#128230;</span>
-          <div class="card-title">GridFS for Binary</div>
-          <div class="card-body">Binary payloads (firmware images, waveforms, camera frames) are too large for a document field. GridFS handles chunking transparently with full metadata support.</div>
+          <span class="card-icon">&#128279;</span>
+          <div class="card-title">Cross-Collection Linking</div>
+          <div class="card-body">All reports share <code>component_id</code> and <code>production_id</code> fields with indexes, enabling efficient joins across all process steps for a given component.</div>
         </div>
         <div class="card">
           <span class="card-icon">&#128202;</span>
@@ -974,8 +975,8 @@ Worker / Consumer
             <div class="flow-step-line"></div>
           </div>
           <div class="flow-step-content">
-            <div class="flow-step-title">Device opens a streaming call</div>
-            <div class="flow-step-desc">A device (the <strong>producer</strong>) opens a client-streaming gRPC call to <code>DataService.SendData</code>.</div>
+            <div class="flow-step-title">Machine calls a BESI service</div>
+            <div class="flow-step-desc">A BESI machine sends a unary <code>PushReport(Report)</code> call to one of the 7 registered gRPC services on port 50051.</div>
           </div>
         </div>
         <div class="flow-step">
@@ -984,8 +985,8 @@ Worker / Consumer
             <div class="flow-step-line"></div>
           </div>
           <div class="flow-step-content">
-            <div class="flow-step-title">DataPacket messages are sent</div>
-            <div class="flow-step-desc">It sends one or more <code>DataPacket</code> messages — each with a type, timestamp, device ID, and payload.</div>
+            <div class="flow-step-title">Server buffers to Redis</div>
+            <div class="flow-step-desc">The <strong>gRPC server</strong> serialises the report and pushes it onto the <code>data_stream</code> Redis Stream, then immediately returns a <code>ReportReply</code>.</div>
           </div>
         </div>
         <div class="flow-step">
@@ -994,22 +995,17 @@ Worker / Consumer
             <div class="flow-step-line"></div>
           </div>
           <div class="flow-step-content">
-            <div class="flow-step-title">Server buffers to Redis</div>
-            <div class="flow-step-desc">The <strong>gRPC server</strong> pushes each packet onto the <code>data_stream</code> Redis Stream and returns an <code>Ack</code>.</div>
-          </div>
-        </div>
-        <div class="flow-step">
-          <div class="flow-step-left">
-            <div class="flow-step-number">4</div>
-            <div class="flow-step-line"></div>
-          </div>
-          <div class="flow-step-content">
             <div class="flow-step-title">Worker routes and persists</div>
             <div class="flow-step-desc">
-              The <strong>worker</strong> reads from <code>data_stream</code> via a consumer group:
+              The <strong>worker</strong> reads from <code>data_stream</code> via a consumer group and routes each message to the correct collection based on the service name:
               <ul style="margin-top:8px;">
-                <li><code>type = "sensor"</code> or <code>type = "event"</code> &rarr; inserted into the <code>measurements</code> Time Series collection.</li>
-                <li><code>type = "binary"</code> &rarr; stored in GridFS; a reference document is added to <code>measurements</code>.</li>
+                <li><code>alignment</code> &rarr; <code>alignment_reports</code></li>
+                <li><code>bonding</code> &rarr; <code>bonding_reports</code></li>
+                <li><code>creation</code> &rarr; <code>creation_reports</code></li>
+                <li><code>pbi</code> &rarr; <code>pbi_reports</code></li>
+                <li><code>pickup</code> &rarr; <code>pickup_reports</code></li>
+                <li><code>transfer</code> &rarr; <code>transfer_reports</code></li>
+                <li><code>preproduction</code> &rarr; <code>preproduction_reports</code></li>
                 <li>On write failure the message is moved to <code>data_stream_failed</code> and retried on the next cycle.</li>
               </ul>
             </div>
@@ -1017,7 +1013,7 @@ Worker / Consumer
         </div>
         <div class="flow-step">
           <div class="flow-step-left">
-            <div class="flow-step-number">5</div>
+            <div class="flow-step-number">4</div>
             <div class="flow-step-line"></div>
           </div>
           <div class="flow-step-content">
@@ -1039,7 +1035,7 @@ Worker / Consumer
         <code>docker compose up -d</code>
       </div>
 
-      <p>This starts four containers in detached mode:</p>
+      <p>This starts all six containers in detached mode:</p>
 
       <div class="service-list">
         <div class="service-item">
@@ -1054,7 +1050,7 @@ Worker / Consumer
           <span class="service-icon">&#128196;</span>
           <div class="service-info">
             <div class="service-name">grpc_mongodb</div>
-            <div class="service-desc">mongo:7 &mdash; Time Series + GridFS storage</div>
+            <div class="service-desc">mongo:7 &mdash; Report collection storage</div>
           </div>
           <span class="service-port">:27017</span>
         </div>
@@ -1074,9 +1070,25 @@ Worker / Consumer
           </div>
           <span class="service-port">:3000</span>
         </div>
+        <div class="service-item">
+          <span class="service-icon">&#9889;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_server</div>
+            <div class="service-desc">Built from Dockerfile &mdash; gRPC server, all 7 BESI services on port 50051</div>
+          </div>
+          <span class="service-port">:50051</span>
+        </div>
+        <div class="service-item">
+          <span class="service-icon">&#9881;&#65039;</span>
+          <div class="service-info">
+            <div class="service-name">grpc_worker</div>
+            <div class="service-desc">Built from Dockerfile &mdash; Redis consumer, writes reports to MongoDB</div>
+          </div>
+          <span class="service-port">&mdash;</span>
+        </div>
       </div>
 
-      <p>Mongo Express and Grafana both wait for MongoDB's health check to pass before starting.</p>
+      <p>Mongo Express and Grafana both wait for MongoDB's health check to pass before starting. The server and worker containers wait for their dependencies (Redis and MongoDB) to be healthy.</p>
 
       <h3>Configure credentials</h3>
       <p>Create a <code>.env</code> file in the project root. Docker Compose reads it automatically and substitutes the values into the service definitions.</p>
@@ -1148,7 +1160,7 @@ docker compose down -v</code></pre>
 
       <div class="callout warning">
         <span class="callout-icon">&#9888;&#65039;</span>
-        <div><code>docker compose down -v</code> permanently deletes the <code>redis_data</code>, <code>mongo_data</code>, and <code>grafana_data</code> volumes. All measurements, binary files, and Grafana dashboard configurations will be lost.</div>
+        <div><code>docker compose down -v</code> permanently deletes the <code>redis_data</code>, <code>mongo_data</code>, and <code>grafana_data</code> volumes. All report data and Grafana dashboard configurations will be lost.</div>
       </div>
     </section>
 
@@ -1159,15 +1171,15 @@ docker compose down -v</code></pre>
 
       <ul>
         <li><strong>Docker Desktop</strong> (Windows / macOS) or Docker Engine + Compose plugin (Linux)</li>
-        <li><strong>Python 3.10+</strong></li>
-        <li>Python packages: <code>grpcio</code>, <code>grpcio-tools</code>, <code>pymongo</code>, <code>redis</code></li>
+        <li><strong>Python 3.10+</strong> (only needed if regenerating gRPC stubs)</li>
+        <li>Python packages: <code>grpcio</code>, <code>grpcio-tools</code>, <code>pymongo</code>, <code>redis</code>, <code>python-dotenv</code></li>
       </ul>
 
       <p>Install Python dependencies:</p>
 
       <div class="code-block-wrapper">
         <span class="code-lang">bash</span>
-        <pre><code class="language-bash">pip install grpcio grpcio-tools pymongo redis</code></pre>
+        <pre><code class="language-bash">pip install -r requirements.txt</code></pre>
       </div>
     </section>
 
@@ -1183,23 +1195,19 @@ docker compose down -v</code></pre>
 cd gRPC</code></pre>
       </div>
 
-      <h3>2. Start infrastructure</h3>
+      <h3>2. Start all services</h3>
       <div class="code-block-wrapper">
         <span class="code-lang">bash</span>
         <pre><code class="language-bash">docker compose up -d</code></pre>
       </div>
+      <p>This starts all six containers including the gRPC server and worker. No manual <code>python server.py</code> or <code>python worker.py</code> is needed.</p>
 
-      <h3>3. Generate Python gRPC stubs</h3>
-      <p>Generate Python stubs from the proto definition:</p>
+      <h3>3. Regenerate Python gRPC stubs (only if proto files change)</h3>
       <div class="code-block-wrapper">
         <span class="code-lang">bash</span>
-        <pre><code class="language-bash">python -m grpc_tools.protoc \
-  -I./proto \
-  --python_out=. \
-  --grpc_python_out=. \
-  proto/data.proto</code></pre>
+        <pre><code class="language-bash">python generate_stubs.py</code></pre>
       </div>
-      <p>This produces <code>data_pb2.py</code> and <code>data_pb2_grpc.py</code> in the project root.</p>
+      <p>The compiled stubs in <code>generated/</code> are already committed to the repository. This step is only needed when proto files are modified.</p>
     </section>
 
     <!-- ── Configuration ────────────────────────────────────────── -->
@@ -1221,39 +1229,54 @@ cd gRPC</code></pre>
               <td>Port the gRPC server listens on</td>
             </tr>
             <tr>
-              <td><code>GRPC_MAX_WORKERS</code></td>
+              <td><code>MAX_WORKERS</code></td>
               <td><code>50</code></td>
               <td>Thread pool size for the gRPC server</td>
             </tr>
             <tr>
-              <td><code>REDIS_URL</code></td>
-              <td><code>redis://localhost:6379</code></td>
-              <td>Redis connection string</td>
+              <td><code>REDIS_HOST</code></td>
+              <td><code>localhost</code></td>
+              <td>Redis hostname</td>
             </tr>
             <tr>
-              <td><code>REDIS_STREAM_KEY</code></td>
+              <td><code>REDIS_PORT</code></td>
+              <td><code>6379</code></td>
+              <td>Redis port</td>
+            </tr>
+            <tr>
+              <td><code>STREAM_KEY</code></td>
               <td><code>data_stream</code></td>
-              <td>Primary Redis Stream key</td>
+              <td>Redis Stream key</td>
             </tr>
             <tr>
-              <td><code>REDIS_FAILED_KEY</code></td>
-              <td><code>data_stream_failed</code></td>
-              <td>Stream for undeliverable messages</td>
+              <td><code>MONGO_HOST</code></td>
+              <td><code>localhost</code></td>
+              <td>MongoDB hostname</td>
             </tr>
             <tr>
-              <td><code>REDIS_CONSUMER_GROUP</code></td>
-              <td><code>workers</code></td>
-              <td>Consumer group name</td>
+              <td><code>MONGO_USER</code></td>
+              <td><code>admin</code></td>
+              <td>MongoDB username</td>
             </tr>
             <tr>
-              <td><code>MONGO_URL</code></td>
-              <td><code>mongodb://localhost:27017</code></td>
-              <td>MongoDB connection string</td>
+              <td><code>MONGO_PASSWORD</code></td>
+              <td><code>changeme</code></td>
+              <td>MongoDB password</td>
             </tr>
             <tr>
               <td><code>MONGO_DB</code></td>
-              <td><code>daq</code></td>
+              <td><code>grpcdata</code></td>
               <td>Database name</td>
+            </tr>
+            <tr>
+              <td><code>CONSUMER_NAME</code></td>
+              <td><code>worker-1</code></td>
+              <td>Unique name per worker instance</td>
+            </tr>
+            <tr>
+              <td><code>BATCH_SIZE</code></td>
+              <td><code>10</code></td>
+              <td>Messages read per Redis cycle</td>
             </tr>
           </tbody>
         </table>
@@ -1265,137 +1288,60 @@ cd gRPC</code></pre>
       <div class="section-label">Reference</div>
       <h2>Proto Schema</h2>
 
-      <p>File: <code>proto/data.proto</code></p>
+      <p>The system implements 7 separate BESI gRPC services. All use unary <code>PushReport</code> RPCs. Proto files are organised in two directories:</p>
+      <ul>
+        <li><code>proto/component_data_collection/</code> — alignment, bonding, creation, pbi, pickup, transfer</li>
+        <li><code>proto/production_data_collection/</code> — preproduction</li>
+      </ul>
+
+      <p>Each service follows the same pattern:</p>
 
       <div class="code-block-wrapper">
         <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">syntax = "proto3";
-
-message DataPacket {
-  string type      = 1;  // "sensor" | "event" | "binary"
-  int64  timestamp = 2;  // Unix epoch, milliseconds
-  string device_id = 3;
-  bytes  payload   = 4;  // JSON-encoded for sensor/event; raw bytes for binary
-}
-
-message Ack {
-  bool success = 1;
-}
-
-service DataService {
-  rpc SendData(stream DataPacket) returns (Ack);
+        <pre><code class="language-protobuf">service &lt;Name&gt;DataService {
+  rpc PushReport(Report) returns (ReportReply);
 }</code></pre>
       </div>
-
-      <h3>Payload Conventions</h3>
 
       <div class="table-wrapper">
         <table>
           <thead>
-            <tr><th>Type</th><th>Payload Format</th><th>Example</th></tr>
+            <tr><th>Service</th><th>Proto Package</th><th>MongoDB Collection</th></tr>
           </thead>
           <tbody>
-            <tr>
-              <td><code>sensor</code></td>
-              <td>JSON object</td>
-              <td><code>{"temperature": 23.4, "humidity": 61}</code></td>
-            </tr>
-            <tr>
-              <td><code>event</code></td>
-              <td>JSON object</td>
-              <td><code>{"code": "E_OVERHEAT", "severity": "warn"}</code></td>
-            </tr>
-            <tr>
-              <td><code>binary</code></td>
-              <td>Raw bytes</td>
-              <td>firmware image, ADC waveform, camera frame</td>
-            </tr>
+            <tr><td><code>AlignmentDataService</code></td><td><code>besi.component.services.alignment.v1_0_0</code></td><td><code>alignment_reports</code></td></tr>
+            <tr><td><code>BondingDataService</code></td><td><code>besi.component.services.bonding.v1_0_0</code></td><td><code>bonding_reports</code></td></tr>
+            <tr><td><code>CreationDataService</code></td><td><code>besi.component.services.creation.v1_0_0</code></td><td><code>creation_reports</code></td></tr>
+            <tr><td><code>PostBondInspectionDataService</code></td><td><code>besi.component.services.pbi.v1_0_0</code></td><td><code>pbi_reports</code></td></tr>
+            <tr><td><code>PickupDataService</code></td><td><code>besi.component.services.pickup.v1_0_0</code></td><td><code>pickup_reports</code></td></tr>
+            <tr><td><code>TransferDataService</code></td><td><code>besi.component.services.transfer.v1_0_0</code></td><td><code>transfer_reports</code></td></tr>
+            <tr><td><code>PreproductionDataService</code></td><td><code>besi.production.services.preproduction.v1_0_0</code></td><td><code>preproduction_reports</code></td></tr>
           </tbody>
         </table>
       </div>
-    </section>
 
-    <!-- ── Proto Reference ──────────────────────────────────────── -->
-    <section id="proto-reference">
-      <div class="section-label">Protocol Buffers</div>
-      <h2>Protocol Buffers Reference</h2>
-      <p>Proto3 concepts used in <code>proto/data.proto</code> and best practices for safely evolving the schema.</p>
-
-      <h3>Syntax Declaration</h3>
+      <h3>Code Generation</h3>
+      <p>Generate all Python stubs from the proto files:</p>
       <div class="code-block-wrapper">
-        <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">syntax = "proto3";</code></pre>
+        <span class="code-lang">bash</span>
+        <pre><code class="language-bash">python generate_stubs.py</code></pre>
       </div>
-      <p>Specifies proto3. Proto3 uses zero-value defaults for all fields and is simpler to evolve than proto2.</p>
+      <p>The compiled stubs in <code>generated/</code> are committed to the repository. Re-run this script only when proto files change.</p>
 
-      <h3>Message Declaration</h3>
-      <p><code>message</code> defines a structured data type. Each field has a name, scalar type, and a unique tag number. Messages can be nested for hierarchical data.</p>
-      <div class="code-block-wrapper">
-        <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">message DataPacket {
-  string type      = 1;
-  int64  timestamp = 2;
-  string device_id = 3;
-  bytes  payload   = 4;
-}</code></pre>
+      <h3>Proto Best Practices</h3>
+      <div class="callout warning">
+        <span class="callout-icon">&#9888;&#65039;</span>
+        <div><strong>Never re-use a tag number.</strong> Serialised messages in Redis or old clients may still carry the old encoding — reusing a tag number causes silent data corruption or crashes.</div>
       </div>
-
-      <h3>Enum Declaration</h3>
-      <p>Always include <code>UNDEFINED = 0</code> as the first enum value — proto3 requires a zero default and it safely handles unrecognised values from older senders.</p>
-      <div class="code-block-wrapper">
-        <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">enum DataType {
-  UNDEFINED = 0;
-  SENSOR    = 1;
-  EVENT     = 2;
-  BINARY    = 3;
-}</code></pre>
-      </div>
-
-      <h3>Repeated Fields</h3>
-      <p><code>repeated</code> allows zero or more instances of a field — it maps to a Python list in generated stubs.</p>
-      <div class="code-block-wrapper">
-        <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">message Batch {
-  repeated DataPacket packets = 1;
-}</code></pre>
-      </div>
-
-      <h3>Service &amp; Streaming</h3>
-      <p><code>stream</code> on the request type makes it a client-streaming RPC — the client sends multiple messages before the server returns a single <code>Ack</code>.</p>
-      <div class="code-block-wrapper">
-        <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">service DataService {
-  rpc SendData(stream DataPacket) returns (Ack);
-}</code></pre>
-      </div>
-
-      <h3>Tag Number Rules</h3>
-      <div class="callout callout-warn">
-        <strong>Never re-use a tag number.</strong> Serialised packets in Redis, logs, or old producers may still carry the old encoding — reusing a tag number causes silent data corruption or crashes in old clients.
-      </div>
-
-      <h3>Deleting Fields Safely</h3>
       <p>When removing a field, reserve both its tag number and name so <code>protoc</code> rejects any future reuse:</p>
       <div class="code-block-wrapper">
         <span class="code-lang">protobuf</span>
-        <pre><code class="language-protobuf">message DataPacket {
+        <pre><code class="language-protobuf">message Report {
   reserved 5;
   reserved "old_field";
   // remaining fields …
 }</code></pre>
       </div>
-
-      <h3>Code Generation (Python)</h3>
-      <div class="code-block-wrapper">
-        <span class="code-lang">bash</span>
-        <pre><code class="language-bash">python -m grpc_tools.protoc \
-  -I./proto \
-  --python_out=. \
-  --grpc_python_out=. \
-  proto/data.proto</code></pre>
-      </div>
-      <p>Produces <code>data_pb2.py</code> (message classes) and <code>data_pb2_grpc.py</code> (stub + servicer). Run after every change to <code>data.proto</code>. The generated files are committed so that the producer machine only needs <code>grpcio</code>, not <code>grpcio-tools</code>.</p>
     </section>
 
     <!-- ── MongoDB Collections ──────────────────────────────────── -->
@@ -1403,29 +1349,58 @@ service DataService {
       <div class="section-label">Reference</div>
       <h2>MongoDB Collections</h2>
 
-      <h3>measurements (Time Series)</h3>
-      <ul>
-        <li><strong>Granularity:</strong> <code>seconds</code></li>
-        <li><strong>Time field:</strong> <code>timestamp</code></li>
-        <li><strong>Meta fields:</strong> <code>device_id</code>, <code>type</code></li>
-        <li><strong>Index:</strong> compound on <code>(timestamp, device_id, type)</code></li>
-        <li>Stores all <code>sensor</code> and <code>event</code> packets, plus reference documents for binary uploads</li>
-      </ul>
+      <p>All 7 collections live in the <code>grpcdata</code> database. Every document has the same structure:</p>
 
-      <h3>GridFS (fs.files / fs.chunks)</h3>
-      <ul>
-        <li>Stores raw binary payloads</li>
-        <li>Each file's metadata includes <code>device_id</code>, <code>timestamp</code>, and <code>type = "binary"</code></li>
-        <li>The <code>measurements</code> document for a binary packet contains the GridFS <code>file_id</code> for cross-referencing</li>
-      </ul>
+      <div class="code-block-wrapper">
+        <span class="code-lang">json</span>
+        <pre><code class="language-bash">{
+  "_id":           ObjectId("..."),
+  "received_at":   ISODate("2025-03-23T10:15:32Z"),
+  "service":       "alignment",
+  "component_id":  "a1b2c3d4-...",     // present in all except preproduction
+  "production_id": "prod-2025-001",
+  "report":        { ... }             // full proto object as JSON
+}</code></pre>
+      </div>
+
+      <p>Indexes on: <code>received_at</code>, <code>production_id</code>, <code>component_id</code></p>
+
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr><th>Collection</th><th>Content</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>alignment_reports</code></td><td>Uplooking-camera adjustment, bonding-position adjustment, theta iterations</td></tr>
+            <tr><td><code>bonding_reports</code></td><td>Bond profile (stage positions) and optional axis traces</td></tr>
+            <tr><td><code>creation_reports</code></td><td>Component creation: tool name, lot info, source material</td></tr>
+            <tr><td><code>pbi_reports</code></td><td>Post-bond inspection: XY offset and theta offset</td></tr>
+            <tr><td><code>pickup_reports</code></td><td>Pickup process: flipper Z/theta, eject needle, vacuum traces</td></tr>
+            <tr><td><code>transfer_reports</code></td><td>Transfer from flipper to bonding head, component-center inspection</td></tr>
+            <tr><td><code>preproduction_reports</code></td><td>Machine name, serial number, PPID, component types used</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <h3>Browsing data with Mongo Express</h3>
       <p>Open <a href="http://localhost:8081" target="_blank">http://localhost:8081</a> — no login required.</p>
       <ol>
         <li>In the left-hand database list, click <strong>grpcdata</strong>.</li>
-        <li>Click <strong>measurements</strong> to browse sensor and event documents stored in the Time Series collection.</li>
-        <li>The <strong>fs.files</strong> and <strong>fs.chunks</strong> collections contain the GridFS binary payloads. Use <code>fs.files</code> to find a file by metadata and <code>fs.chunks</code> for raw binary chunks.</li>
+        <li>Click any of the 7 report collections to browse documents.</li>
       </ol>
+
+      <h3>Querying across collections</h3>
+      <div class="code-block-wrapper">
+        <span class="code-lang">mongosh</span>
+        <pre><code class="language-bash">// All reports for a specific component
+db.alignment_reports.find({ component_id: "a1b2c3d4-..." })
+db.bonding_reports.find({ component_id: "a1b2c3d4-..." })
+
+// Count reports per service for a production run
+["alignment","bonding","creation","pbi","pickup","transfer"].forEach(s => {
+  print(s + ": " + db[s + "_reports"].countDocuments({ production_id: "prod-001" }))
+})</code></pre>
+      </div>
     </section>
 
     <!-- ── Running the System ───────────────────────────────────── -->
